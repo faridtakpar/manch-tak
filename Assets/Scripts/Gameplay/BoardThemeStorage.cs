@@ -1,29 +1,55 @@
 
 using UnityEngine;
+using System;
 
 namespace ManchTak
 {
     public static class BoardThemeStorage
     {
-        private const string SaveKey = "ManchTak_SelectedBoard";
+        private const string SaveKeyPrefix =
+            "ManchTak_SelectedBoard_";
 
-        public static void Save(MainMenuBoardTheme theme)
+        private static string GetSaveKey(string playerId)
         {
-            PlayerPrefs.SetInt(SaveKey, (int)theme);
+            if (string.IsNullOrWhiteSpace(playerId))
+            {
+                throw new ArgumentException(
+                    "شناسه بازیکن معتبر نیست.",
+                    nameof(playerId)
+                );
+            }
+
+            return SaveKeyPrefix + playerId.Trim();
+        }
+
+        public static void Save(
+            string playerId,
+            MainMenuBoardTheme theme)
+        {
+            if (!Enum.IsDefined(typeof(MainMenuBoardTheme), theme))
+                return;
+
+            PlayerPrefs.SetInt(
+                GetSaveKey(playerId),
+                (int)theme
+            );
+
             PlayerPrefs.Save();
         }
 
-        public static MainMenuBoardTheme Load()
+        public static MainMenuBoardTheme Load(string playerId)
         {
-            if (!PlayerPrefs.HasKey(SaveKey))
+            string key = GetSaveKey(playerId);
+
+            if (!PlayerPrefs.HasKey(key))
                 return MainMenuBoardTheme.Classic;
 
             int savedValue = PlayerPrefs.GetInt(
-                SaveKey,
+                key,
                 (int)MainMenuBoardTheme.Classic
             );
 
-            if (!System.Enum.IsDefined(
+            if (!Enum.IsDefined(
                 typeof(MainMenuBoardTheme),
                 savedValue))
             {
@@ -33,9 +59,9 @@ namespace ManchTak
             return (MainMenuBoardTheme)savedValue;
         }
 
-        public static void DeleteSave()
+        public static void DeleteSave(string playerId)
         {
-            PlayerPrefs.DeleteKey(SaveKey);
+            PlayerPrefs.DeleteKey(GetSaveKey(playerId));
             PlayerPrefs.Save();
         }
     }

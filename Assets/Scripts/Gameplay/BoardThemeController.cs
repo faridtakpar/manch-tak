@@ -1,51 +1,74 @@
+
 using System;
 
-namespace ManchTak
+namespace ManchTak.UI
 {
-    public class BoardThemeController
+    public class PlayerProfileController
     {
-        public MainMenuBoardTheme SelectedTheme { get; private set; }
+        public PlayerProfileViewData Profile { get; private set; }
 
-        public int PlayerLevel { get; private set; }
+        public event Action<PlayerProfileViewData> OnProfileChanged;
 
-        public event Action<MainMenuBoardTheme> OnThemeChanged;
-
-        public BoardThemeController(int playerLevel)
+        public PlayerProfileController(
+            PlayerProfileViewData profile = null)
         {
-            PlayerLevel = Math.Max(1, playerLevel);
-            SelectedTheme = MainMenuBoardTheme.Classic;
+            Profile = profile ?? new PlayerProfileViewData();
         }
 
-        public bool SelectTheme(MainMenuBoardTheme theme)
+        public bool ChangeDisplayName(string newName)
         {
-            if (!BoardThemeCatalog.IsUnlocked(theme, PlayerLevel))
+            if (!PlayerProfileRules.SetDisplayName(
+                Profile,
+                newName))
+            {
                 return false;
+            }
 
-            SelectedTheme = theme;
-
-            OnThemeChanged?.Invoke(SelectedTheme);
-
+            NotifyProfileChanged();
             return true;
         }
 
-        public void UpdatePlayerLevel(int newLevel)
+        public bool ChangeAvatar(string avatarId)
         {
-            PlayerLevel = Math.Max(1, newLevel);
+            PlayerAvatarData avatar =
+                PlayerAvatarCatalog.FindById(avatarId);
+
+            if (avatar == null)
+                return false;
+
+            if (!PlayerProfileRules.SetAvatar(
+                Profile,
+                avatar.AvatarType,
+                avatar.AvatarId))
+            {
+                return false;
+            }
+
+            NotifyProfileChanged();
+            return true;
         }
 
-        public bool IsSelected(MainMenuBoardTheme theme)
+        public bool RecordMatchResult(bool won)
         {
-            return SelectedTheme == theme;
+            if (!PlayerProfileRules.UpdateMatchStats(
+                Profile,
+                won))
+            {
+                return false;
+            }
+
+            NotifyProfileChanged();
+            return true;
         }
 
-        public bool IsAvailable(MainMenuBoardTheme theme)
+        public float GetWinRate()
         {
-            return BoardThemeCatalog.IsUnlocked(theme, PlayerLevel);
+            return PlayerProfileRules.GetWinRate(Profile);
         }
 
-        public BoardThemeData GetSelectedThemeData()
+        private void NotifyProfileChanged()
         {
-            return BoardThemeCatalog.Find(SelectedTheme);
+            OnProfileChanged?.Invoke(Profile);
         }
     }
 }

@@ -1,79 +1,98 @@
-
-using System;
 using System.Collections.Generic;
 
-namespace ManchTak.UI
+namespace ManchTak
 {
-    [Serializable]
-    public class PlayerAvatarData
+    public static class BoardThemeCatalog
     {
-        public string AvatarId;
-        public PlayerAvatarType AvatarType;
-        public string DisplayName;
-        public string ImagePath;
-    }
-
-    public static class PlayerAvatarCatalog
-    {
-        private static readonly List<PlayerAvatarData> Avatars =
-            new List<PlayerAvatarData>
+        private static readonly List<BoardThemeData> BoardList =
+            new List<BoardThemeData>
             {
-                new PlayerAvatarData
-                {
-                    AvatarId = "male_01",
-                    AvatarType = PlayerAvatarType.Male,
-                    DisplayName = "پسرانه ۱",
-                    ImagePath = "Avatars/Male/male_01"
-                },
-                new PlayerAvatarData
-                {
-                    AvatarId = "male_02",
-                    AvatarType = PlayerAvatarType.Male,
-                    DisplayName = "پسرانه ۲",
-                    ImagePath = "Avatars/Male/male_02"
-                },
-                new PlayerAvatarData
-                {
-                    AvatarId = "female_01",
-                    AvatarType = PlayerAvatarType.Female,
-                    DisplayName = "دخترانه ۱",
-                    ImagePath = "Avatars/Female/female_01"
-                },
-                new PlayerAvatarData
-                {
-                    AvatarId = "female_02",
-                    AvatarType = PlayerAvatarType.Female,
-                    DisplayName = "دخترانه ۲",
-                    ImagePath = "Avatars/Female/female_02"
-                }
+                new BoardThemeData(
+                    MainMenuBoardTheme.Classic,
+                    "کلاسیک",
+                    "تخته اصلی منچ تک",
+                    "Boards/Classic/board",
+                    "Boards/Classic/preview",
+                    true,
+                    1
+                ),
+
+                new BoardThemeData(
+                    MainMenuBoardTheme.Wooden,
+                    "چوبی",
+                    "تخته با طراحی چوب طبیعی",
+                    "Boards/Wooden/board",
+                    "Boards/Wooden/preview",
+                    false,
+                    5
+                ),
+
+                new BoardThemeData(
+                    MainMenuBoardTheme.Ice,
+                    "یخی",
+                    "تخته با طراحی کریستالی و یخی",
+                    "Boards/Ice/board",
+                    "Boards/Ice/preview",
+                    false,
+                    10
+                ),
+
+                new BoardThemeData(
+                    MainMenuBoardTheme.Football,
+                    "فوتبالی",
+                    "تخته ویژه علاقه‌مندان فوتبال",
+                    "Boards/Football/board",
+                    "Boards/Football/preview",
+                    false,
+                    15
+                ),
+
+                new BoardThemeData(
+                    MainMenuBoardTheme.Professional,
+                    "حرفه‌ای",
+                    "تخته ویژه بازیکنان حرفه‌ای",
+                    "Boards/Professional/board",
+                    "Boards/Professional/preview",
+                    false,
+                    20
+                )
             };
 
-        public static IReadOnlyList<PlayerAvatarData> GetAll()
+        public static IReadOnlyList<BoardThemeData> GetAll()
         {
-            return Avatars.AsReadOnly();
+            return BoardList.AsReadOnly();
         }
 
-        public static IReadOnlyList<PlayerAvatarData> GetByType(
-            PlayerAvatarType avatarType)
+        public static BoardThemeData Find(
+            MainMenuBoardTheme theme)
         {
-            return Avatars.FindAll(
-                avatar => avatar.AvatarType == avatarType
-            ).AsReadOnly();
-        }
-
-        public static PlayerAvatarData FindById(string avatarId)
-        {
-            if (string.IsNullOrWhiteSpace(avatarId))
-                return null;
-
-            return Avatars.Find(
-                avatar => avatar.AvatarId == avatarId
+            return BoardList.Find(
+                item => item.ThemeId == theme
             );
         }
 
-        public static bool Exists(string avatarId)
+        public static bool IsUnlocked(
+            MainMenuBoardTheme theme,
+            int playerLevel)
         {
-            return FindById(avatarId) != null;
+            BoardThemeData data = Find(theme);
+
+            if (data == null || playerLevel < 1)
+                return false;
+
+            return data.IsUnlocked ||
+                   playerLevel >= data.UnlockLevel;
+        }
+
+        public static List<BoardThemeData> GetUnlocked(
+            int playerLevel)
+        {
+            return BoardList.FindAll(
+                item => IsUnlocked(
+                    item.ThemeId,
+                    playerLevel
+                )
+            );
         }
     }
 }

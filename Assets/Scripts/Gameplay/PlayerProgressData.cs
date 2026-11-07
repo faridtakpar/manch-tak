@@ -6,6 +6,8 @@ namespace ManchTak
     [Serializable]
     public class PlayerProgressData
     {
+        public string PlayerId;
+
         public int PlayerLevel;
         public int CurrentXP;
         public int TotalXP;
@@ -13,10 +15,16 @@ namespace ManchTak
 
         public PlayerProgressData()
         {
-            PlayerLevel = 1;
+            PlayerId = string.Empty;
+
+            PlayerLevel = LevelProgressionSystem.MinimumLevel;
             CurrentXP = 0;
             TotalXP = 0;
-            XPToNextLevel = 500;
+
+            XPToNextLevel =
+                LevelProgressionSystem.GetXPRequiredForNextLevel(
+                    PlayerLevel
+                );
         }
 
         public PlayerProgressData(
@@ -25,10 +33,48 @@ namespace ManchTak
             int totalXP,
             int xpToNextLevel)
         {
-            PlayerLevel = Math.Max(1, playerLevel);
+            PlayerId = string.Empty;
+
+            PlayerLevel = Math.Max(
+                LevelProgressionSystem.MinimumLevel,
+                Math.Min(
+                    LevelProgressionSystem.MaximumLevel,
+                    playerLevel
+                )
+            );
+
             CurrentXP = Math.Max(0, currentXP);
             TotalXP = Math.Max(0, totalXP);
-            XPToNextLevel = Math.Max(1, xpToNextLevel);
+
+            XPToNextLevel =
+                LevelProgressionSystem.GetXPRequiredForNextLevel(
+                    PlayerLevel
+                );
+        }
+
+        public PlayerProgressData(
+            string playerId,
+            int playerLevel,
+            int currentXP,
+            int totalXP)
+        {
+            PlayerId = playerId ?? string.Empty;
+
+            PlayerLevel = Math.Max(
+                LevelProgressionSystem.MinimumLevel,
+                Math.Min(
+                    LevelProgressionSystem.MaximumLevel,
+                    playerLevel
+                )
+            );
+
+            CurrentXP = Math.Max(0, currentXP);
+            TotalXP = Math.Max(0, totalXP);
+
+            XPToNextLevel =
+                LevelProgressionSystem.GetXPRequiredForNextLevel(
+                    PlayerLevel
+                );
         }
     }
 }

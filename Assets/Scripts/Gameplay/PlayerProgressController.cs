@@ -16,75 +16,137 @@ namespace ManchTak
             NormalizeProgress();
         }
 
+        // هماهنگ‌سازی اطلاعات XP و سطح
         private void NormalizeProgress()
         {
-            Progress.PlayerLevel = Math.Max(1, Progress.PlayerLevel);
+            Progress.PlayerLevel = Math.Max(
+                LevelProgressionSystem.MinimumLevel,
+                Progress.PlayerLevel
+            );
+
+            Progress.PlayerLevel = Math.Min(
+                LevelProgressionSystem.MaximumLevel,
+                Progress.PlayerLevel
+            );
+
             Progress.CurrentXP = Math.Max(0, Progress.CurrentXP);
             Progress.TotalXP = Math.Max(0, Progress.TotalXP);
-            Progress.XPToNextLevel = Math.Max(1, Progress.XPToNextLevel);
 
-            while (Progress.CurrentXP >= Progress.XPToNextLevel)
+            // بازیابی XP کل در صورت ناسازگاری اطلاعات قدیمی
+            long expectedTotalXP =
+                LevelProgressionSystem.GetTotalXPForLevel(
+                    Progress.PlayerLevel
+                ) + Progress.CurrentXP;
+
+            if (Progress.TotalXP < expectedTotalXP)
             {
-                Progress.CurrentXP -= Progress.XPToNextLevel;
-                Progress.PlayerLevel++;
-
-                Progress.XPToNextLevel =
-                    GetXPRequiredForLevel(Progress.PlayerLevel);
+                Progress.TotalXP = expectedTotalXP > int.MaxValue
+                    ? int.MaxValue
+                    : (int)expectedTotalXP;
             }
+
+            int calculatedLevel =
+                LevelProgressionSystem.CalculateLevel(
+                    Progress.TotalXP
+                );
+
+            Progress.PlayerLevel = calculatedLevel;
+
+            long levelStartXP =
+                LevelProgressionSystem.GetTotalXPForLevel(
+                    calculatedLevel
+                );
+
+            long currentLevelXP =
+                Progress.TotalXP - levelStartXP;
+
+            Progress.CurrentXP = (int)Math.Max(
+                0L,
+                Math.Min(int.MaxValue, currentLevelXP)
+            );
+
+            Progress.XPToNextLevel =
+                LevelProgressionSystem.GetXPRequiredForNextLevel(
+                    Progress.PlayerLevel
+                );
         }
 
+        // دریافت XP پس از برد
         public void AddWinXP()
         {
-            AddXP(138);
+            AddXP(PlayerProgressionRules.WinnerXP);
         }
 
+        // دریافت XP پس از باخت
         public void AddLoseXP()
         {
-            AddXP(50);
+            AddXP(PlayerProgressionRules.LoserXP);
         }
 
+        // اضافه کردن XP
         public void AddXP(int amount)
         {
             if (amount <= 0)
                 return;
 
+            NormalizeProgress();
+
+            if (Progress.PlayerLevel >=
+                LevelProgressionSystem.MaximumLevel)
+                return;
+
+            if (Progress.TotalXP > int.MaxValue - amount)
+                return;
+
+            int previousLevel = Progress.PlayerLevel;
+
             Progress.TotalXP += amount;
-            Progress.CurrentXP += amount;
 
-            while (Progress.CurrentXP >= Progress.XPToNextLevel)
+            NormalizeProgress();
+
+            // اعلام ارتقای سطح، حتی اگر چند سطح یک‌باره رد شده باشد
+            for (
+                int level = previousLevel + 1;
+                level <= Progress.PlayerLevel;
+                level++
+            )
             {
-                Progress.CurrentXP -= Progress.XPToNextLevel;
-                Progress.PlayerLevel++;
-
-                Progress.XPToNextLevel =
-                    GetXPRequiredForLevel(Progress.PlayerLevel);
-
-                OnLevelUp?.Invoke(Progress.PlayerLevel);
+                OnLevelUp?.Invoke(level);
             }
 
             OnProgressChanged?.Invoke(Progress);
         }
 
-        private int GetXPRequiredForLevel(int level)
-        {
-            return 500 + ((level - 1) * 100);
-        }
-
+        // XP باقی‌مانده تا سطح بعدی
         public int GetRemainingXP()
         {
-            return Math.Max(
-                0,
-                Progress.XPToNextLevel - Progress.CurrentXP
+            return (int)Math.Min(
+                int.MaxValue,
+                LevelProgressionSystem.GetRemainingXP(
+                    new LevelProgressData(Progress.PlayerId)
+                    {
+                        Level = Progress.PlayerLevel,
+                        TotalXP = Progress.TotalXP
+                    }
+                )
             );
         }
 
+        // درصد پیشرفت نوار XP
         public float GetLevelProgress()
         {
-            if (Progress.XPToNextLevel <= 0)
+            if (Progress.PlayerLevel >=
+                LevelProgressionSystem.MaximumLevel)
                 return 1f;
 
-            return (float)Progress.CurrentXP /
-                   Progress.XPToNextLevel;
+            return LevelProgressionSystem
+                .GetLevelProgressPercent(
+                    new LevelProgressData(Progress.PlayerId)
+                    {
+                        Level = Progress.PlayerLevel,
+                        TotalXP = Progress.TotalXP
+                    }
+                ) / 100f;
         }
     }
 }

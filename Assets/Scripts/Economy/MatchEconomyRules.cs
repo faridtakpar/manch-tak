@@ -7,7 +7,6 @@ namespace ManchTak
         TajrishTwoPlayer
     }
 
-    // نام مستقل برای نتیجه اقتصادی مسابقه
     public enum MatchEconomyResult
     {
         Winner,
@@ -17,26 +16,33 @@ namespace ManchTak
 
     public static class MatchEconomyRules
     {
-        public const int EntryFee = 50;
-
         public static int GetEntryFee()
         {
-            return EntryFee;
+            return (int)MatchWalletRules.EntryFee;
         }
 
-        public static int GetWinnerPrize(MatchField field)
+        private static MatchArena ConvertArena(
+            MatchField field)
         {
             switch (field)
             {
                 case MatchField.AzadiFourPlayer:
-                    return 500;
+                    return MatchArena.Azadi;
 
                 case MatchField.TajrishTwoPlayer:
-                    return 200;
+                    return MatchArena.Tajrish;
 
                 default:
-                    return 0;
+                    return (MatchArena)(-1);
             }
+        }
+
+        public static int GetWinnerPrize(
+            MatchField field)
+        {
+            return (int)MatchWalletRules.GetWinnerReward(
+                ConvertArena(field)
+            );
         }
 
         public static int GetAdditionalDeduction(

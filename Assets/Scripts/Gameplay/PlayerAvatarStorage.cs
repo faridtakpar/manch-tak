@@ -1,24 +1,43 @@
 
 using UnityEngine;
+using System;
 
 namespace ManchTak
 {
     public static class PlayerAvatarStorage
     {
-        private const string SaveKey = "ManchTak_SelectedAvatar";
+        private const string SaveKeyPrefix =
+            "ManchTak_SelectedAvatar_";
 
-        public static void Save(int avatarId)
+        private static string GetSaveKey(string playerId)
+        {
+            if (string.IsNullOrWhiteSpace(playerId))
+                throw new ArgumentException(
+                    "شناسه بازیکن معتبر نیست.",
+                    nameof(playerId)
+                );
+
+            return SaveKeyPrefix + playerId.Trim();
+        }
+
+        public static void Save(string playerId, int avatarId)
         {
             if (PlayerAvatarCatalog.Find(avatarId) == null)
                 return;
 
-            PlayerPrefs.SetInt(SaveKey, avatarId);
+            PlayerPrefs.SetInt(
+                GetSaveKey(playerId),
+                avatarId
+            );
+
             PlayerPrefs.Save();
         }
 
-        public static int Load()
+        public static int Load(string playerId)
         {
-            int avatarId = PlayerPrefs.GetInt(SaveKey, 1);
+            string key = GetSaveKey(playerId);
+
+            int avatarId = PlayerPrefs.GetInt(key, 1);
 
             if (PlayerAvatarCatalog.Find(avatarId) == null)
                 return 1;
@@ -26,9 +45,9 @@ namespace ManchTak
             return avatarId;
         }
 
-        public static void DeleteSave()
+        public static void DeleteSave(string playerId)
         {
-            PlayerPrefs.DeleteKey(SaveKey);
+            PlayerPrefs.DeleteKey(GetSaveKey(playerId));
             PlayerPrefs.Save();
         }
     }

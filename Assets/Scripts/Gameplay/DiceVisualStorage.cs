@@ -6,21 +6,46 @@ namespace ManchTak
 {
     public static class DiceVisualStorage
     {
-        private const string SaveKey = "ManchTak_SelectedDice";
+        private const string SaveKeyPrefix =
+            "ManchTak_SelectedDice_";
 
-        public static void Save(DiceVisualType dice)
+        private static string GetSaveKey(string playerId)
         {
-            PlayerPrefs.SetInt(SaveKey, (int)dice);
+            if (string.IsNullOrWhiteSpace(playerId))
+            {
+                throw new ArgumentException(
+                    "شناسه بازیکن معتبر نیست.",
+                    nameof(playerId)
+                );
+            }
+
+            return SaveKeyPrefix + playerId.Trim();
+        }
+
+        public static void Save(
+            string playerId,
+            DiceVisualType dice)
+        {
+            if (!Enum.IsDefined(typeof(DiceVisualType), dice))
+                return;
+
+            PlayerPrefs.SetInt(
+                GetSaveKey(playerId),
+                (int)dice
+            );
+
             PlayerPrefs.Save();
         }
 
-        public static DiceVisualType Load()
+        public static DiceVisualType Load(string playerId)
         {
-            if (!PlayerPrefs.HasKey(SaveKey))
+            string key = GetSaveKey(playerId);
+
+            if (!PlayerPrefs.HasKey(key))
                 return DiceVisualType.Classic;
 
             int savedValue = PlayerPrefs.GetInt(
-                SaveKey,
+                key,
                 (int)DiceVisualType.Classic
             );
 
@@ -34,9 +59,9 @@ namespace ManchTak
             return (DiceVisualType)savedValue;
         }
 
-        public static void DeleteSave()
+        public static void DeleteSave(string playerId)
         {
-            PlayerPrefs.DeleteKey(SaveKey);
+            PlayerPrefs.DeleteKey(GetSaveKey(playerId));
             PlayerPrefs.Save();
         }
     }

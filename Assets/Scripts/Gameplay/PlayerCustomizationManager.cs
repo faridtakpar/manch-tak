@@ -1,4 +1,6 @@
 
+using System;
+
 namespace ManchTak
 {
     public class PlayerCustomizationManager
@@ -7,9 +9,23 @@ namespace ManchTak
 
         public DiceVisualController DiceController { get; private set; }
 
-        public PlayerCustomizationManager(int playerLevel)
+        private readonly string playerId;
+
+        public PlayerCustomizationManager(
+            string playerId,
+            int playerLevel)
         {
-            int level = playerLevel < 1 ? 1 : playerLevel;
+            if (string.IsNullOrWhiteSpace(playerId))
+            {
+                throw new ArgumentException(
+                    "شناسه بازیکن معتبر نیست.",
+                    nameof(playerId)
+                );
+            }
+
+            this.playerId = playerId;
+
+            int level = Math.Max(1, playerLevel);
 
             BoardController = new BoardThemeController(level);
             DiceController = new DiceVisualController(level);
@@ -20,10 +36,10 @@ namespace ManchTak
         private void LoadSelections()
         {
             MainMenuBoardTheme savedBoard =
-                BoardThemeStorage.Load();
+                BoardThemeStorage.Load(playerId);
 
             DiceVisualType savedDice =
-                DiceVisualStorage.Load();
+                DiceVisualStorage.Load(playerId);
 
             if (BoardController.IsAvailable(savedBoard))
             {
@@ -41,7 +57,8 @@ namespace ManchTak
             if (!BoardController.SelectTheme(theme))
                 return false;
 
-            BoardThemeStorage.Save(theme);
+            BoardThemeStorage.Save(playerId, theme);
+
             return true;
         }
 
@@ -50,7 +67,8 @@ namespace ManchTak
             if (!DiceController.SelectDice(dice))
                 return false;
 
-            DiceVisualStorage.Save(dice);
+            DiceVisualStorage.Save(playerId, dice);
+
             return true;
         }
 

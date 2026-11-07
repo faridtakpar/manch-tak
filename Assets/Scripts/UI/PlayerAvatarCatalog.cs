@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace ManchTak
 {
     [Serializable]
-    public class PlayerAvatarData
+    public class ProfileAvatarData
     {
         public string AvatarId;
         public PlayerAvatarType AvatarType;
@@ -12,33 +12,40 @@ namespace ManchTak
         public string ImagePath;
     }
 
-    public static class PlayerAvatarCatalog
+    public static class ProfileAvatarCatalog
     {
-        private static readonly List<PlayerAvatarData> Avatars =
-            new List<PlayerAvatarData>
+        private static readonly List<ProfileAvatarData> Avatars =
+            new List<ProfileAvatarData>
             {
-                new PlayerAvatarData
+                new ProfileAvatarData
+                {
+                    AvatarId = "default_01",
+                    AvatarType = PlayerAvatarType.Male,
+                    DisplayName = "آواتار پیش‌فرض",
+                    ImagePath = "Avatars/Default/default_01"
+                },
+                new ProfileAvatarData
                 {
                     AvatarId = "male_01",
                     AvatarType = PlayerAvatarType.Male,
                     DisplayName = "پسرانه ۱",
                     ImagePath = "Avatars/Male/male_01"
                 },
-                new PlayerAvatarData
+                new ProfileAvatarData
                 {
                     AvatarId = "male_02",
                     AvatarType = PlayerAvatarType.Male,
                     DisplayName = "پسرانه ۲",
                     ImagePath = "Avatars/Male/male_02"
                 },
-                new PlayerAvatarData
+                new ProfileAvatarData
                 {
                     AvatarId = "female_01",
                     AvatarType = PlayerAvatarType.Female,
                     DisplayName = "دخترانه ۱",
                     ImagePath = "Avatars/Female/female_01"
                 },
-                new PlayerAvatarData
+                new ProfileAvatarData
                 {
                     AvatarId = "female_02",
                     AvatarType = PlayerAvatarType.Female,
@@ -47,12 +54,12 @@ namespace ManchTak
                 }
             };
 
-        public static IReadOnlyList<PlayerAvatarData> GetAll()
+        public static IReadOnlyList<ProfileAvatarData> GetAll()
         {
             return Avatars.AsReadOnly();
         }
 
-        public static IReadOnlyList<PlayerAvatarData> GetByType(
+        public static IReadOnlyList<ProfileAvatarData> GetByType(
             PlayerAvatarType avatarType)
         {
             return Avatars.FindAll(
@@ -60,7 +67,7 @@ namespace ManchTak
             ).AsReadOnly();
         }
 
-        public static PlayerAvatarData FindById(string avatarId)
+        public static ProfileAvatarData FindById(string avatarId)
         {
             if (string.IsNullOrWhiteSpace(avatarId))
                 return null;

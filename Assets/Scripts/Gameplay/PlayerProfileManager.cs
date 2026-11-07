@@ -45,6 +45,12 @@ namespace ManchTak
                 );
             }
 
+            if (savedProfile.ProcessedMatchIds == null)
+            {
+                savedProfile.ProcessedMatchIds =
+                    new string[0];
+            }
+
             ProfileController =
                 new PlayerProfileController(savedProfile);
 
@@ -65,6 +71,116 @@ namespace ManchTak
         private void HandleLevelUp(int newLevel)
         {
             OnLevelUp?.Invoke(newLevel);
+        }
+
+        // بررسی ثبت قبلی مسابقه
+        private bool HasProcessedMatch(string matchId)
+        {
+            if (string.IsNullOrWhiteSpace(matchId) ||
+                Profile.ProcessedMatchIds == null)
+            {
+                return false;
+            }
+
+            foreach (string savedMatchId in Profile.ProcessedMatchIds)
+            {
+                if (string.Equals(
+                    savedMatchId,
+                    matchId,
+                    StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // ثبت شناسه مسابقه
+        private void MarkMatchAsProcessed(string matchId)
+        {
+            string[] oldIds = Profile.ProcessedMatchIds
+                ?? new string[0];
+
+            string[] newIds = new string[oldIds.Length + 1];
+
+            Array.Copy(
+                oldIds,
+                newIds,
+                oldIds.Length
+            );
+
+            newIds[newIds.Length - 1] = matchId;
+
+            Profile.ProcessedMatchIds = newIds;
+        }
+
+        // ثبت نتیجه مسابقه و پاداش بازیکن
+        public bool ApplyMatchResult(MatchResult result)
+        {
+            if (result == null ||
+                result.Status != MatchResultStatus.Completed ||
+                string.IsNullOrWhiteSpace(result.MatchId))
+            {
+                return false;
+            }
+
+            if (HasProcessedMatch(result.MatchId))
+                return false;
+
+            string playerId = Profile.PlayerId;
+
+            if (string.IsNullOrWhiteSpace(playerId))
+                return false;
+
+            bool isWinner = string.Equals(
+                result.WinnerId,
+                playerId,
+                StringComparison.Ordinal
+            );
+
+            bool isLoser = false;
+
+            if (result.LoserIds != null)
+            {
+                foreach (string loserId in result.LoserIds)
+                {
+                    if (string.Equals(
+                        loserId,
+                        playerId,
+                        StringComparison.Ordinal))
+                    {
+                        isLoser = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isWinner && !isLoser)
+                return false;
+
+            int rewardXP = isWinner
+                ? PlayerProgressionRules.WinnerXP
+                : PlayerProgressionRules.LoserXP;
+
+            // ابتدا شناسه را ثبت می‌کنیم تا ذخیره‌های بعدی
+            // نتوانند پاداش همین مسابقه را دوباره اعمال کنند.
+            MarkMatchAsProcessed(result.MatchId);
+
+            ProfileController.AddXP(rewardXP);
+
+            if (isWinner)
+            {
+                ProfileController.RecordWin();
+            }
+            else
+            {
+                ProfileController.RecordLoss();
+            }
+
+            SaveProfile(Profile);
+
+            return true;
         }
 
         // تغییر نام بازیکن

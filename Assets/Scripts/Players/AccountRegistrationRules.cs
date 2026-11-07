@@ -124,6 +124,7 @@ namespace ManchTak
             };
         }
 
+      
         // آماده سازی پیشرفت اولیه بازیکن
         public static LevelProgressData CreateInitialProgress(
             string internalPlayerId)
@@ -131,7 +132,12 @@ namespace ManchTak
             if (string.IsNullOrWhiteSpace(internalPlayerId))
                 return null;
 
-            return new LevelProgressData(internalPlayerId);
+            LevelProgressData progress =
+                new LevelProgressData(internalPlayerId);
+
+            LevelProgressionSystem.NormalizeProgress(progress);
+
+            return progress;
         }
-    }
+
 }

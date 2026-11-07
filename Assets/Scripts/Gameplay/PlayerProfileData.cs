@@ -18,6 +18,9 @@ namespace ManchTak
         public int TotalWins;
         public int TotalLosses;
 
+        // شناسه مسابقاتی که پاداش آن‌ها ثبت شده است
+        public string[] ProcessedMatchIds;
+
         public string CreatedAt;
 
         public PlayerProfileData()
@@ -33,6 +36,8 @@ namespace ManchTak
 
             TotalWins = 0;
             TotalLosses = 0;
+
+            ProcessedMatchIds = new string[0];
 
             CreatedAt = string.Empty;
         }
@@ -56,6 +61,8 @@ namespace ManchTak
 
             TotalWins = 0;
             TotalLosses = 0;
+
+            ProcessedMatchIds = new string[0];
 
             CreatedAt = DateTime.UtcNow.ToString("O");
         }

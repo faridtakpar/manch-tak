@@ -1,4 +1,5 @@
 
+using System;
 using UnityEngine;
 
 namespace ManchTak
@@ -16,16 +17,35 @@ namespace ManchTak
                 return false;
             }
 
-            string json = JsonUtility.ToJson(profile);
+            try
+            {
+                if (profile.ProcessedMatchIds == null)
+                {
+                    profile.ProcessedMatchIds =
+                        new string[0];
+                }
 
-            PlayerPrefs.SetString(
-                SaveKeyPrefix + profile.PlayerId,
-                json
-            );
+                string json = JsonUtility.ToJson(profile);
 
-            PlayerPrefs.Save();
+                if (string.IsNullOrEmpty(json))
+                    return false;
 
-            return true;
+                string key = SaveKeyPrefix + profile.PlayerId;
+
+                PlayerPrefs.SetString(key, json);
+                PlayerPrefs.Save();
+
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(
+                    "خطا در ذخیره پروفایل: " +
+                    exception.Message
+                );
+
+                return false;
+            }
         }
 
         public static PlayerProfileData Load(string playerId)
@@ -33,31 +53,45 @@ namespace ManchTak
             if (string.IsNullOrWhiteSpace(playerId))
                 return null;
 
-            string key = SaveKeyPrefix + playerId;
-
-            if (!PlayerPrefs.HasKey(key))
-                return null;
-
-            string json = PlayerPrefs.GetString(key);
-
-            if (string.IsNullOrEmpty(json))
-                return null;
-
             try
             {
+                string key = SaveKeyPrefix + playerId;
+
+                if (!PlayerPrefs.HasKey(key))
+                    return null;
+
+                string json = PlayerPrefs.GetString(key);
+
+                if (string.IsNullOrEmpty(json))
+                    return null;
+
                 PlayerProfileData profile =
                     JsonUtility.FromJson<PlayerProfileData>(json);
 
                 if (profile == null ||
-                    profile.PlayerId != playerId)
+                    !string.Equals(
+                        profile.PlayerId,
+                        playerId,
+                        StringComparison.Ordinal))
                 {
                     return null;
                 }
 
+                if (profile.ProcessedMatchIds == null)
+                {
+                    profile.ProcessedMatchIds =
+                        new string[0];
+                }
+
                 return profile;
             }
-            catch
+            catch (Exception exception)
             {
+                Debug.LogError(
+                    "خطا در بارگذاری پروفایل: " +
+                    exception.Message
+                );
+
                 return null;
             }
         }

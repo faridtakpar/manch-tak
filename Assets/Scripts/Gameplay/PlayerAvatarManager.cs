@@ -1,4 +1,6 @@
 
+using System;
+
 namespace ManchTak
 {
     public class PlayerAvatarManager
@@ -9,8 +11,22 @@ namespace ManchTak
             private set;
         }
 
-        public PlayerAvatarManager(int playerLevel)
+        private readonly string playerId;
+
+        public PlayerAvatarManager(
+            string playerId,
+            int playerLevel)
         {
+            if (string.IsNullOrWhiteSpace(playerId))
+            {
+                throw new ArgumentException(
+                    "شناسه بازیکن معتبر نیست.",
+                    nameof(playerId)
+                );
+            }
+
+            this.playerId = playerId;
+
             AvatarController =
                 new PlayerAvatarController(playerLevel);
 
@@ -19,12 +35,17 @@ namespace ManchTak
 
         private void LoadSelectedAvatar()
         {
-            int savedAvatarId = PlayerAvatarStorage.Load();
+            int savedAvatarId =
+                PlayerAvatarStorage.Load(playerId);
 
             if (!AvatarController.SelectAvatar(savedAvatarId))
             {
                 AvatarController.SelectAvatar(1);
-                PlayerAvatarStorage.Save(1);
+
+                PlayerAvatarStorage.Save(
+                    playerId,
+                    AvatarController.SelectedAvatarId
+                );
             }
         }
 
@@ -33,7 +54,10 @@ namespace ManchTak
             if (!AvatarController.SelectAvatar(avatarId))
                 return false;
 
-            PlayerAvatarStorage.Save(avatarId);
+            PlayerAvatarStorage.Save(
+                playerId,
+                avatarId
+            );
 
             return true;
         }

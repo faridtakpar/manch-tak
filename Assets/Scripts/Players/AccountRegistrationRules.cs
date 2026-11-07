@@ -105,8 +105,7 @@ namespace ManchTak
             if (coinGift == null || diamondGift == null)
                 return null;
 
-            // شناسه‌های ثابت برای جلوگیری از تکرار هدیه
-            // در سیستم ثبت تراکنش سمت سرور
+            // شناسه ثابت برای جلوگیری از تکرار هدیه در سرور
             coinGift.TransactionId =
                 "account-gift-coin-" + internalPlayerId;
 
@@ -124,7 +123,6 @@ namespace ManchTak
             };
         }
 
-      
         // آماده سازی پیشرفت اولیه بازیکن
         public static LevelProgressData CreateInitialProgress(
             string internalPlayerId)
@@ -139,5 +137,5 @@ namespace ManchTak
 
             return progress;
         }
-
+    }
 }

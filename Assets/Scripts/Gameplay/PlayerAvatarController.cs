@@ -26,6 +26,9 @@ namespace ManchTak
                 return false;
             }
 
+            if (SelectedAvatarId == avatarId)
+                return true;
+
             SelectedAvatarId = avatarId;
 
             OnAvatarChanged?.Invoke(SelectedAvatarId);

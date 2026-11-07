@@ -49,8 +49,8 @@ namespace ManchTak
         public MatchResult()
         {
             Status = MatchResultStatus.InProgress;
-            WinnerXP = 138;
-            LoserXP = 50;
+            WinnerXP = PlayerProgressionRules.WinnerXP;
+            LoserXP = PlayerProgressionRules.LoserXP;
         }
     }
 
@@ -59,10 +59,12 @@ namespace ManchTak
         public const int SpeedModeRequiredPieces = 2;
         public const int ClassicModeRequiredPieces = 4;
 
-        public const int WinnerXPReward = 138;
-        public const int LoserXPReward = 50;
+        public const int WinnerXPReward =
+            PlayerProgressionRules.WinnerXP;
 
-        // تعداد مهره لازم برای برنده شدن
+        public const int LoserXPReward =
+            PlayerProgressionRules.LoserXP;
+
         public static int GetRequiredFinishedPieces(
             MatchPlayMode mode)
         {
@@ -79,7 +81,6 @@ namespace ManchTak
             }
         }
 
-        // بررسی رسیدن بازیکن به شرط پیروزی
         public static bool HasPlayerWon(
             PlayerMatchProgress player,
             MatchPlayMode mode)
@@ -96,7 +97,6 @@ namespace ManchTak
             return player.FinishedPieces >= requiredPieces;
         }
 
-        // بررسی پایان مسابقه
         public static MatchResult CheckMatchResult(
             string matchId,
             PlayerMatchProgress[] players,
@@ -137,11 +137,13 @@ namespace ManchTak
 
                 foreach (PlayerMatchProgress other in players)
                 {
-                    if (other == null ||
-                        other == player)
+                    if (other == null || other == player)
                         continue;
 
-                    if (other.PlayerId == player.PlayerId)
+                    if (string.Equals(
+                        other.PlayerId,
+                        player.PlayerId,
+                        StringComparison.Ordinal))
                     {
                         result.Status = MatchResultStatus.Invalid;
                         return result;
@@ -168,14 +170,16 @@ namespace ManchTak
 
             result.WinnerId = winnerId;
 
-            int loserCount = players.Length - 1;
-            result.LoserIds = new string[loserCount];
+            result.LoserIds = new string[players.Length - 1];
 
             int index = 0;
 
             foreach (PlayerMatchProgress player in players)
             {
-                if (player.PlayerId != winnerId)
+                if (!string.Equals(
+                    player.PlayerId,
+                    winnerId,
+                    StringComparison.Ordinal))
                 {
                     result.LoserIds[index] = player.PlayerId;
                     index++;
@@ -183,6 +187,7 @@ namespace ManchTak
             }
 
             result.Status = MatchResultStatus.Completed;
+
             result.CompletedAt =
                 DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
@@ -192,7 +197,6 @@ namespace ManchTak
             return result;
         }
 
-        // دریافت XP بازیکن
         public static int GetPlayerXP(
             MatchResult result,
             string playerId)
@@ -200,18 +204,30 @@ namespace ManchTak
             if (result == null ||
                 result.Status != MatchResultStatus.Completed ||
                 string.IsNullOrWhiteSpace(playerId))
+            {
                 return 0;
+            }
 
-            if (result.WinnerId == playerId)
-                return WinnerXPReward;
+            if (string.Equals(
+                result.WinnerId,
+                playerId,
+                StringComparison.Ordinal))
+            {
+                return result.WinnerXP;
+            }
 
             if (result.LoserIds == null)
                 return 0;
 
             foreach (string loserId in result.LoserIds)
             {
-                if (loserId == playerId)
-                    return LoserXPReward;
+                if (string.Equals(
+                    loserId,
+                    playerId,
+                    StringComparison.Ordinal))
+                {
+                    return result.LoserXP;
+                }
             }
 
             return 0;

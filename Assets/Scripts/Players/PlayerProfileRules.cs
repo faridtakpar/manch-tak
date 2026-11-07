@@ -25,14 +25,21 @@ namespace ManchTak
             PlayerAvatarType avatarType,
             string avatarId)
         {
-            if (profile == null || string.IsNullOrWhiteSpace(avatarId))
+            if (profile == null ||
+                string.IsNullOrWhiteSpace(avatarId))
                 return false;
 
             if (!Enum.IsDefined(typeof(PlayerAvatarType), avatarType))
                 return false;
 
+            ProfileAvatarData avatar =
+                ProfileAvatarCatalog.FindById(avatarId.Trim());
+
+            if (avatar == null || avatar.AvatarType != avatarType)
+                return false;
+
             profile.AvatarType = avatarType;
-            profile.AvatarId = avatarId.Trim();
+            profile.AvatarId = avatar.AvatarId;
 
             return true;
         }
@@ -42,6 +49,14 @@ namespace ManchTak
             bool won)
         {
             if (profile == null)
+                return false;
+
+            if (profile.TotalWins < 0 ||
+                profile.TotalLosses < 0)
+                return false;
+
+            if (profile.TotalWins + profile.TotalLosses !=
+                profile.TotalMatches)
                 return false;
 
             profile.TotalMatches++;

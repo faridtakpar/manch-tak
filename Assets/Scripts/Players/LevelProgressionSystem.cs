@@ -13,7 +13,7 @@ namespace ManchTak
         public LevelProgressData(string playerId)
         {
             PlayerId = playerId;
-            Level = 1;
+            Level = LevelProgressionSystem.MinimumLevel;
             TotalXP = 0;
         }
     }
@@ -26,18 +26,17 @@ namespace ManchTak
         public const int FirstLevelXP = 100;
         public const int XPIncreasePerLevel = 25;
 
-        // XP مورد نیاز برای عبور از یک سطح
+        // XP مورد نیاز برای عبور از سطح فعلی
         public static int GetXPRequiredForNextLevel(int level)
         {
-            if (level < MinimumLevel ||
-                level >= MaximumLevel)
+            if (level < MinimumLevel || level >= MaximumLevel)
                 return 0;
 
             return FirstLevelXP +
                    ((level - 1) * XPIncreasePerLevel);
         }
 
-        // مجموع XP مورد نیاز برای رسیدن به یک سطح
+        // مجموع XP لازم برای رسیدن به یک سطح
         public static long GetTotalXPForLevel(int level)
         {
             if (level <= MinimumLevel)
@@ -54,7 +53,7 @@ namespace ManchTak
                    (completedLevels - 1) / 2);
         }
 
-        // تعیین سطح براساس مجموع XP
+        // محاسبه سطح براساس مجموع XP
         public static int CalculateLevel(long totalXP)
         {
             if (totalXP <= 0)
@@ -64,16 +63,34 @@ namespace ManchTak
 
             while (level < MaximumLevel)
             {
-                long nextLevelXP =
+                long requiredTotalXP =
                     GetTotalXPForLevel(level + 1);
 
-                if (totalXP < nextLevelXP)
+                if (totalXP < requiredTotalXP)
                     break;
 
                 level++;
             }
 
             return level;
+        }
+
+        // هماهنگ‌سازی اطلاعات سطح و XP
+        public static bool NormalizeProgress(
+            LevelProgressData progress)
+        {
+            if (progress == null)
+                return false;
+
+            if (string.IsNullOrWhiteSpace(progress.PlayerId))
+                return false;
+
+            if (progress.TotalXP < 0)
+                progress.TotalXP = 0;
+
+            progress.Level = CalculateLevel(progress.TotalXP);
+
+            return true;
         }
 
         // اضافه کردن XP مسابقه
@@ -86,6 +103,8 @@ namespace ManchTak
                 string.IsNullOrWhiteSpace(progress.PlayerId))
                 return false;
 
+            NormalizeProgress(progress);
+
             if (progress.Level >= MaximumLevel)
                 return false;
 
@@ -94,8 +113,7 @@ namespace ManchTak
 
             progress.TotalXP += amount;
 
-            progress.Level =
-                CalculateLevel(progress.TotalXP);
+            NormalizeProgress(progress);
 
             return true;
         }
@@ -107,11 +125,13 @@ namespace ManchTak
             if (progress == null)
                 return 0;
 
+            int actualLevel = CalculateLevel(progress.TotalXP);
+
             long levelStartXP =
-                GetTotalXPForLevel(progress.Level);
+                GetTotalXPForLevel(actualLevel);
 
             return Math.Max(
-                0,
+                0L,
                 progress.TotalXP - levelStartXP
             );
         }
@@ -120,18 +140,21 @@ namespace ManchTak
         public static float GetLevelProgressPercent(
             LevelProgressData progress)
         {
-            if (progress == null ||
-                progress.Level >= MaximumLevel)
+            if (progress == null)
+                return 0f;
+
+            int actualLevel = CalculateLevel(progress.TotalXP);
+
+            if (actualLevel >= MaximumLevel)
                 return 100f;
 
             int requiredXP =
-                GetXPRequiredForNextLevel(progress.Level);
+                GetXPRequiredForNextLevel(actualLevel);
 
             if (requiredXP <= 0)
                 return 100f;
 
-            long currentXP =
-                GetCurrentLevelXP(progress);
+            long currentXP = GetCurrentLevelXP(progress);
 
             float percentage =
                 (float)currentXP / requiredXP * 100f;
@@ -142,21 +165,23 @@ namespace ManchTak
             );
         }
 
-        // XP باقی مانده تا سطح بعدی
+        // XP باقی‌مانده تا سطح بعدی
         public static long GetRemainingXP(
             LevelProgressData progress)
         {
-            if (progress == null ||
-                progress.Level >= MaximumLevel)
+            if (progress == null)
                 return 0;
 
-            long currentXP =
-                GetCurrentLevelXP(progress);
+            int actualLevel = CalculateLevel(progress.TotalXP);
+
+            if (actualLevel >= MaximumLevel)
+                return 0;
+
+            long currentXP = GetCurrentLevelXP(progress);
 
             return Math.Max(
-                0,
-                GetXPRequiredForNextLevel(progress.Level) -
-                currentXP
+                0L,
+                GetXPRequiredForNextLevel(actualLevel) - currentXP
             );
         }
     }

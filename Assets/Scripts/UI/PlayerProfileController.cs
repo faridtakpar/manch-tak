@@ -2,13 +2,14 @@ using System;
 
 namespace ManchTak
 {
-    public class PlayerProfileController
+    public class PlayerProfileViewController
     {
         public PlayerProfileViewData Profile { get; private set; }
 
         public event Action<PlayerProfileViewData> OnProfileChanged;
 
-        public PlayerProfileController(PlayerProfileViewData profile = null)
+        public PlayerProfileViewController(
+            PlayerProfileViewData profile = null)
         {
             Profile = profile ?? new PlayerProfileViewData();
         }
@@ -24,8 +25,8 @@ namespace ManchTak
 
         public bool ChangeAvatar(string avatarId)
         {
-            PlayerAvatarData avatar =
-                PlayerAvatarCatalog.FindById(avatarId);
+            ProfileAvatarData avatar =
+                ProfileAvatarCatalog.FindById(avatarId);
 
             if (avatar == null)
                 return false;

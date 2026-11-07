@@ -65,7 +65,8 @@ namespace ManchTak
             return identity.IsValid() ? identity : null;
         }
 
-        // آماده سازی کیف پول حساب جدید
+        // ساخت کیف پول خالی برای حساب جدید
+        // هدیه اولیه از طریق تراکنش جداگانه اعمال می‌شود.
         public static WalletData CreateInitialWallet(
             string internalPlayerId)
         {
@@ -78,13 +79,49 @@ namespace ManchTak
             if (wallet == null)
                 return null;
 
-            wallet.Coins = NewAccountGiftRules.InitialCoins;
-            wallet.Diamonds = NewAccountGiftRules.InitialDiamonds;
-
             wallet.LastUpdatedAt =
                 DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-            return wallet;
+            return wallet.IsValid() ? wallet : null;
+        }
+
+        // ساخت تراکنش‌های هدیه اولیه حساب
+        public static WalletTransaction[] CreateInitialGiftTransactions(
+            string internalPlayerId)
+        {
+            if (string.IsNullOrWhiteSpace(internalPlayerId))
+                return null;
+
+            WalletTransaction coinGift =
+                NewAccountGiftRules.CreateCoinGift(
+                    internalPlayerId
+                );
+
+            WalletTransaction diamondGift =
+                NewAccountGiftRules.CreateDiamondGift(
+                    internalPlayerId
+                );
+
+            if (coinGift == null || diamondGift == null)
+                return null;
+
+            // شناسه‌های ثابت برای جلوگیری از تکرار هدیه
+            // در سیستم ثبت تراکنش سمت سرور
+            coinGift.TransactionId =
+                "account-gift-coin-" + internalPlayerId;
+
+            diamondGift.TransactionId =
+                "account-gift-diamond-" + internalPlayerId;
+
+            if (!coinGift.IsValid() ||
+                !diamondGift.IsValid())
+                return null;
+
+            return new WalletTransaction[]
+            {
+                coinGift,
+                diamondGift
+            };
         }
 
         // آماده سازی پیشرفت اولیه بازیکن

@@ -1,78 +1,113 @@
-using System;
 using System.Collections.Generic;
 
 namespace ManchTak
 {
-    [Serializable]
-    public class ProfileAvatarData
+    public static class PlayerAvatarCatalog
     {
-        public string AvatarId;
-        public PlayerAvatarType AvatarType;
-        public string DisplayName;
-        public string ImagePath;
-    }
-
-    public static class ProfileAvatarCatalog
-    {
-        private static readonly List<ProfileAvatarData> Avatars =
-            new List<ProfileAvatarData>
+        private static readonly List<PlayerAvatarData> Avatars =
+            new List<PlayerAvatarData>
             {
-                new ProfileAvatarData
-                {
-                    AvatarId = "male_01",
-                    AvatarType = PlayerAvatarType.Male,
-                    DisplayName = "پسرانه ۱",
-                    ImagePath = "Avatars/Male/male_01"
-                },
-                new ProfileAvatarData
-                {
-                    AvatarId = "male_02",
-                    AvatarType = PlayerAvatarType.Male,
-                    DisplayName = "پسرانه ۲",
-                    ImagePath = "Avatars/Male/male_02"
-                },
-                new ProfileAvatarData
-                {
-                    AvatarId = "female_01",
-                    AvatarType = PlayerAvatarType.Female,
-                    DisplayName = "دخترانه ۱",
-                    ImagePath = "Avatars/Female/female_01"
-                },
-                new ProfileAvatarData
-                {
-                    AvatarId = "female_02",
-                    AvatarType = PlayerAvatarType.Female,
-                    DisplayName = "دخترانه ۲",
-                    ImagePath = "Avatars/Female/female_02"
-                }
+                new PlayerAvatarData(
+                    1, AvatarGender.Male,
+                    "پسر کلاسیک",
+                    "Avatars/Male/male_01",
+                    true, 1
+                ),
+                new PlayerAvatarData(
+                    2, AvatarGender.Male,
+                    "پسر اسپرت",
+                    "Avatars/Male/male_02",
+                    true, 1
+                ),
+                new PlayerAvatarData(
+                    3, AvatarGender.Male,
+                    "پسر سلطنتی",
+                    "Avatars/Male/male_03",
+                    false, 5
+                ),
+                new PlayerAvatarData(
+                    4, AvatarGender.Male,
+                    "پسر حرفه‌ای",
+                    "Avatars/Male/male_04",
+                    false, 10
+                ),
+                new PlayerAvatarData(
+                    5, AvatarGender.Male,
+                    "پسر نئونی",
+                    "Avatars/Male/male_05",
+                    false, 15
+                ),
+                new PlayerAvatarData(
+                    6, AvatarGender.Female,
+                    "دختر کلاسیک",
+                    "Avatars/Female/female_01",
+                    true, 1
+                ),
+                new PlayerAvatarData(
+                    7, AvatarGender.Female,
+                    "دختر شیک",
+                    "Avatars/Female/female_02",
+                    true, 1
+                ),
+                new PlayerAvatarData(
+                    8, AvatarGender.Female,
+                    "دختر سلطنتی",
+                    "Avatars/Female/female_03",
+                    false, 5
+                ),
+                new PlayerAvatarData(
+                    9, AvatarGender.Female,
+                    "دختر حرفه‌ای",
+                    "Avatars/Female/female_04",
+                    false, 10
+                ),
+                new PlayerAvatarData(
+                    10, AvatarGender.Female,
+                    "دختر نئونی",
+                    "Avatars/Female/female_05",
+                    false, 15
+                )
             };
 
-        public static IReadOnlyList<ProfileAvatarData> GetAll()
+        public static IReadOnlyList<PlayerAvatarData> GetAll()
         {
             return Avatars.AsReadOnly();
         }
 
-        public static IReadOnlyList<ProfileAvatarData> GetByType(
-            PlayerAvatarType avatarType)
+        public static PlayerAvatarData Find(int avatarId)
         {
-            return Avatars.FindAll(
-                avatar => avatar.AvatarType == avatarType
-            ).AsReadOnly();
-        }
-
-        public static ProfileAvatarData FindById(string avatarId)
-        {
-            if (string.IsNullOrWhiteSpace(avatarId))
-                return null;
-
             return Avatars.Find(
-                avatar => avatar.AvatarId == avatarId
+                item => item.AvatarId == avatarId
             );
         }
 
-        public static bool Exists(string avatarId)
+        public static List<PlayerAvatarData> GetByGender(
+            AvatarGender gender)
         {
-            return FindById(avatarId) != null;
+            return Avatars.FindAll(
+                item => item.Gender == gender
+            );
+        }
+
+        public static bool IsUnlocked(
+            int avatarId,
+            int playerLevel)
+        {
+            PlayerAvatarData avatar = Find(avatarId);
+
+            if (avatar == null || playerLevel < 1)
+                return false;
+
+            return avatar.IsUnlocked ||
+                   playerLevel >= avatar.UnlockLevel;
+        }
+
+        public static List<PlayerAvatarData> GetUnlocked(
+            int playerLevel)
+        {
+            return Avatars.FindAll(
+                item => IsUnlocked(item.AvatarId, playerLevel)
+            );
         }
     }
 }

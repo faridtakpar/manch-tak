@@ -18,19 +18,10 @@ namespace ManchTak
         public string DisplayName;
         public string Description;
 
-        // رنگ پس زمینه
         public string BackgroundColor;
-
-        // رنگ سطح اصلی تخته
         public string BoardColor;
-
-        // رنگ خانه های مسیر
         public string PathColor;
-
-        // رنگ جزئیات و خطوط
         public string AccentColor;
-
-        // سبک سطح تخته
         public string SurfaceStyle;
 
         public BoardThemeInfo(
@@ -54,13 +45,12 @@ namespace ManchTak
         }
     }
 
-    public static class BoardThemeCatalog
+    public static class BoardVisualThemeCatalog
     {
         public static BoardThemeInfo[] GetAllThemes()
         {
             return new BoardThemeInfo[]
             {
-                // 1 - کلاسیک مدرن
                 new BoardThemeInfo(
                     BoardTheme.ModernClassic,
                     "کلاسیک مدرن",
@@ -72,7 +62,6 @@ namespace ManchTak
                     "Matte"
                 ),
 
-                // 2 - یخی
                 new BoardThemeInfo(
                     BoardTheme.Ice,
                     "یخی",
@@ -84,7 +73,6 @@ namespace ManchTak
                     "Frosted"
                 ),
 
-                // 3 - چوب لوکس
                 new BoardThemeInfo(
                     BoardTheme.LuxuryWood,
                     "چوب لوکس",
@@ -96,7 +84,6 @@ namespace ManchTak
                     "DarkWood"
                 ),
 
-                // 4 - شیشه ای
                 new BoardThemeInfo(
                     BoardTheme.Glass,
                     "شیشه ای",
@@ -108,7 +95,6 @@ namespace ManchTak
                     "ClearGlass"
                 ),
 
-                // 5 - فوتبالی
                 new BoardThemeInfo(
                     BoardTheme.Football,
                     "فوتبالی",
@@ -120,7 +106,6 @@ namespace ManchTak
                     "Turf"
                 ),
 
-                // 6 - نئون
                 new BoardThemeInfo(
                     BoardTheme.Neon,
                     "نئون",

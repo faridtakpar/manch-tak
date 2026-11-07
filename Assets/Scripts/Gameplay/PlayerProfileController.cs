@@ -2,60 +2,94 @@ using System;
 
 namespace ManchTak
 {
-    public class PlayerProfileViewController
+    public class PlayerProfileController
     {
-        public PlayerProfileViewData Profile { get; private set; }
+        public PlayerProfileData Profile { get; private set; }
 
-        public event Action<PlayerProfileViewData> OnProfileChanged;
+        public event Action<PlayerProfileData> OnProfileChanged;
 
-        public PlayerProfileViewController(
-            PlayerProfileViewData profile = null)
+        public PlayerProfileController(PlayerProfileData profile)
         {
-            Profile = profile ?? new PlayerProfileViewData();
+            Profile = profile ?? new PlayerProfileData();
+            NormalizeProfile();
         }
 
-        public bool ChangeDisplayName(string newName)
+        private void NormalizeProfile()
         {
-            if (!PlayerProfileRules.SetDisplayName(Profile, newName))
+            Profile.PlayerId ??= string.Empty;
+
+            if (string.IsNullOrWhiteSpace(Profile.DisplayName))
+                Profile.DisplayName = "بازیکن جدید";
+
+            Profile.AvatarId = Math.Max(1, Profile.AvatarId);
+            Profile.PlayerLevel = Math.Max(1, Profile.PlayerLevel);
+            Profile.CurrentXP = Math.Max(0, Profile.CurrentXP);
+            Profile.TotalXP = Math.Max(0, Profile.TotalXP);
+            Profile.TotalWins = Math.Max(0, Profile.TotalWins);
+            Profile.TotalLosses = Math.Max(0, Profile.TotalLosses);
+        }
+
+        public bool UpdateDisplayName(string newName)
+        {
+            if (string.IsNullOrWhiteSpace(newName))
                 return false;
 
-            NotifyProfileChanged();
+            newName = newName.Trim();
+
+            if (newName.Length < 3 || newName.Length > 20)
+                return false;
+
+            Profile.DisplayName = newName;
+
+            NotifyChanged();
             return true;
         }
 
-        public bool ChangeAvatar(string avatarId)
+        public bool UpdateAvatar(int avatarId)
         {
-            ProfileAvatarData avatar =
-                ProfileAvatarCatalog.FindById(avatarId);
-
-            if (avatar == null)
+            if (PlayerAvatarCatalog.Find(avatarId) == null)
                 return false;
 
-            if (!PlayerProfileRules.SetAvatar(
-                Profile,
-                avatar.AvatarType,
-                avatar.AvatarId))
-                return false;
+            Profile.AvatarId = avatarId;
 
-            NotifyProfileChanged();
+            NotifyChanged();
             return true;
         }
 
-        public bool RecordMatchResult(bool won)
+        public void UpdateLevel(int level)
         {
-            if (!PlayerProfileRules.UpdateMatchStats(Profile, won))
-                return false;
+            Profile.PlayerLevel = Math.Max(1, level);
+            NotifyChanged();
+        }
 
-            NotifyProfileChanged();
-            return true;
+        public void RecordWin()
+        {
+            Profile.TotalWins++;
+            NotifyChanged();
+        }
+
+        public void RecordLoss()
+        {
+            Profile.TotalLosses++;
+            NotifyChanged();
+        }
+
+        public int GetTotalMatches()
+        {
+            return Profile.TotalWins + Profile.TotalLosses;
         }
 
         public float GetWinRate()
         {
-            return PlayerProfileRules.GetWinRate(Profile);
+            int total = GetTotalMatches();
+
+            if (total == 0)
+                return 0f;
+
+            return (float)Profile.TotalWins / total * 100f;
         }
 
-        private void NotifyProfileChanged()
+        private void NotifyChanged()
         {
             OnProfileChanged?.Invoke(Profile);
         }

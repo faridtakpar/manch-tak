@@ -11,6 +11,12 @@ namespace ManchTak
             private set;
         }
 
+        public PlayerProfileViewController ProfileViewController
+        {
+            get;
+            private set;
+        }
+
         public PlayerProfileData Profile
         {
             get
@@ -54,10 +60,38 @@ namespace ManchTak
             ProfileController =
                 new PlayerProfileController(savedProfile);
 
-            ProfileController.OnProfileChanged += SaveProfile;
+            ProfileViewController =
+                new PlayerProfileViewController();
+
+            ProfileController.OnProfileChanged +=
+                HandleProfileChanged;
+
             ProfileController.OnLevelUp += HandleLevelUp;
 
+            SyncViewProfile();
+
             SaveProfile(Profile);
+        }
+
+        private void HandleProfileChanged(
+            PlayerProfileData profile)
+        {
+            if (profile == null)
+                return;
+
+            SaveProfile(profile);
+            SyncViewProfile();
+        }
+
+        private void SyncViewProfile()
+        {
+            if (ProfileViewController == null ||
+                ProfileController == null)
+            {
+                return;
+            }
+
+            ProfileViewController.SyncProgress(Profile);
         }
 
         private void SaveProfile(PlayerProfileData profile)
@@ -70,10 +104,10 @@ namespace ManchTak
 
         private void HandleLevelUp(int newLevel)
         {
+            SyncViewProfile();
             OnLevelUp?.Invoke(newLevel);
         }
 
-        // بررسی ثبت قبلی مسابقه
         private bool HasProcessedMatch(string matchId)
         {
             if (string.IsNullOrWhiteSpace(matchId) ||
@@ -96,7 +130,6 @@ namespace ManchTak
             return false;
         }
 
-        // ثبت شناسه مسابقه
         private void MarkMatchAsProcessed(string matchId)
         {
             string[] oldIds = Profile.ProcessedMatchIds
@@ -115,7 +148,6 @@ namespace ManchTak
             Profile.ProcessedMatchIds = newIds;
         }
 
-        // ثبت نتیجه مسابقه و پاداش بازیکن
         public bool ApplyMatchResult(MatchResult result)
         {
             if (result == null ||
@@ -163,33 +195,26 @@ namespace ManchTak
                 ? PlayerProgressionRules.WinnerXP
                 : PlayerProgressionRules.LoserXP;
 
-            // ابتدا شناسه را ثبت می‌کنیم تا ذخیره‌های بعدی
-            // نتوانند پاداش همین مسابقه را دوباره اعمال کنند.
             MarkMatchAsProcessed(result.MatchId);
 
             ProfileController.AddXP(rewardXP);
 
             if (isWinner)
-            {
                 ProfileController.RecordWin();
-            }
             else
-            {
                 ProfileController.RecordLoss();
-            }
 
             SaveProfile(Profile);
+            SyncViewProfile();
 
             return true;
         }
 
-        // تغییر نام بازیکن
         public bool ChangeDisplayName(string newName)
         {
             return ProfileController.UpdateDisplayName(newName);
         }
 
-        // تغییر تصویر پروفایل
         public bool ChangeAvatar(int avatarId)
         {
             if (!PlayerAvatarCatalog.IsUnlocked(
@@ -202,66 +227,58 @@ namespace ManchTak
             return ProfileController.UpdateAvatar(avatarId);
         }
 
-        // تغییر دستی سطح
         public void UpdateLevel(int level)
         {
             ProfileController.UpdateLevel(level);
         }
 
-        // افزودن XP
         public bool AddXP(int amount)
         {
             return ProfileController.AddXP(amount);
         }
 
-        // XP برنده
         public bool AddWinXP()
         {
             return ProfileController.AddWinXP();
         }
 
-        // XP بازنده
         public bool AddLoseXP()
         {
             return ProfileController.AddLoseXP();
         }
 
-        // ثبت آمار برد
         public void RecordWin()
         {
             ProfileController.RecordWin();
         }
 
-        // ثبت آمار باخت
         public void RecordLoss()
         {
             ProfileController.RecordLoss();
         }
 
-        // XP باقی‌مانده تا سطح بعد
         public int GetRemainingXP()
         {
             return ProfileController.GetRemainingXP();
         }
 
-        // درصد پیشرفت سطح
         public float GetLevelProgress()
         {
             return ProfileController.GetLevelProgress();
         }
 
-        // ذخیره دستی
         public void Save()
         {
             SaveProfile(Profile);
         }
 
-        // بستن مدیر و قطع رویدادها
         public void Close()
         {
             SaveProfile(Profile);
 
-            ProfileController.OnProfileChanged -= SaveProfile;
+            ProfileController.OnProfileChanged -=
+                HandleProfileChanged;
+
             ProfileController.OnLevelUp -= HandleLevelUp;
         }
     }

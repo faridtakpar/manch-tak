@@ -1,4 +1,3 @@
-
 using System;
 
 namespace ManchTak
@@ -82,6 +81,7 @@ namespace ManchTak
                 return null;
 
             PlayerData[] players = new PlayerData[playerCount];
+
             PlayerMatchProgress[] progress =
                 new PlayerMatchProgress[playerCount];
 
@@ -96,7 +96,9 @@ namespace ManchTak
                 );
 
                 players[i].IsOnline = false;
-                progress[i] = new PlayerMatchProgress(slot.PlayerId);
+
+                progress[i] =
+                    new PlayerMatchProgress(slot.PlayerId);
             }
 
             OfflineMatchSession session =
@@ -146,7 +148,9 @@ namespace ManchTak
                 ConsecutiveSixes[seat] = 0;
                 CurrentDice = null;
                 HasRolled = false;
+
                 AdvanceTurn(seat);
+
                 return dice;
             }
 
@@ -173,6 +177,10 @@ namespace ManchTak
                 return PieceMovementEngine.MoveResult.InvalidInput;
 
             if (!DiceRollSystem.CanMovePiece(CurrentDice))
+                return PieceMovementEngine.MoveResult.InvalidInput;
+
+            if (Players[seat].Pieces == null ||
+                pieceIndex >= Players[seat].Pieces.Length)
                 return PieceMovementEngine.MoveResult.InvalidInput;
 
             PieceData piece = Players[seat].Pieces[pieceIndex];
@@ -238,11 +246,13 @@ namespace ManchTak
             {
                 CurrentDice = null;
                 HasRolled = false;
+
                 return true;
             }
 
             CurrentDice = null;
             HasRolled = false;
+
             AdvanceTurn(seat);
 
             return true;
@@ -268,6 +278,10 @@ namespace ManchTak
 
             for (int seat = 0; seat < Setup.PlayerCount; seat++)
             {
+                if (Players[seat] == null ||
+                    Players[seat].Pieces == null)
+                    return null;
+
                 int colorIndex = (int)Players[seat].Color;
 
                 if (colorIndex < 0 || colorIndex >= 4)
@@ -323,13 +337,22 @@ namespace ManchTak
 
             for (int i = 0; i < Players.Length; i++)
             {
+                if (Players[i] == null ||
+                    Players[i].Pieces == null ||
+                    Progress[i] == null)
+                    return;
+
                 int finished = 0;
 
                 for (int p = 0; p < Players[i].Pieces.Length; p++)
                 {
-                    if (Players[i].Pieces[p].State ==
-                        PieceState.Finished)
+                    PieceData piece = Players[i].Pieces[p];
+
+                    if (piece != null &&
+                        piece.State == PieceState.Finished)
+                    {
                         finished++;
+                    }
                 }
 
                 Progress[i].FinishedPieces = finished;

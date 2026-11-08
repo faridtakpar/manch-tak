@@ -267,6 +267,15 @@ namespace ManchTak
             return ProfileController.GetLevelProgress();
         }
 
+        // اتصال نشان لول به پروفایل بازیکن
+        public void BindLevelBadge(PlayerLevelBadgeBinder binder)
+        {
+            if (binder == null)
+                return;
+
+            binder.Bind(ProfileViewController);
+        }
+
         public void Save()
         {
             SaveProfile(Profile);

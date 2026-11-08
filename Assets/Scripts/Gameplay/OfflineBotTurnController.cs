@@ -51,6 +51,8 @@ namespace ManchTak
             PlayerData player = players[activeSeat];
 
             if (player == null ||
+                player.Pieces == null ||
+                player.Pieces.Length != 4 ||
                 player.PlayerId != setup.Players[activeSeat].PlayerId ||
                 TurnSystem.GetActivePlayerIndex(turns) != activeSeat)
                 return null;
@@ -77,12 +79,10 @@ namespace ManchTak
             if (DiceRollSystem.ShouldSkipTurn(roll))
             {
                 result.ThirdSix = true;
-
-                // پس از سه شش متوالی، شمارنده صفر می‌شود.
                 consecutiveSixes[activeSeat] = 0;
 
                 result.TurnAdvanced =
-                    TurnSystem.StartNextTurn(turns);
+                    AdvanceTurn(turns, activeSeat);
 
                 return result;
             }
@@ -99,7 +99,7 @@ namespace ManchTak
                 if (!result.ExtraTurn)
                 {
                     result.TurnAdvanced =
-                        TurnSystem.StartNextTurn(turns);
+                        AdvanceTurn(turns, activeSeat);
                 }
 
                 return result;
@@ -128,7 +128,7 @@ namespace ManchTak
                 if (!result.ExtraTurn)
                 {
                     result.TurnAdvanced =
-                        TurnSystem.StartNextTurn(turns);
+                        AdvanceTurn(turns, activeSeat);
                 }
 
                 return result;
@@ -137,10 +137,23 @@ namespace ManchTak
             if (!result.ExtraTurn)
             {
                 result.TurnAdvanced =
-                    TurnSystem.StartNextTurn(turns);
+                    AdvanceTurn(turns, activeSeat);
             }
 
             return result;
+        }
+
+        private static bool AdvanceTurn(
+            PlayerTurnData[] turns,
+            int currentSeat)
+        {
+            int nextSeat =
+                TurnSystem.GetNextPlayerIndex(turns, currentSeat);
+
+            if (nextSeat < 0)
+                return false;
+
+            return TurnSystem.StartTurn(turns, nextSeat);
         }
     }
 }

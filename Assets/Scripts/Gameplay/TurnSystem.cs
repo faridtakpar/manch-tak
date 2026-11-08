@@ -1,4 +1,3 @@
-
 using System;
 
 namespace ManchTak
@@ -34,13 +33,11 @@ namespace ManchTak
     {
         public const int TurnDurationSeconds = 30;
 
-        // بررسی معتبر بودن تعداد بازیکنان
         public static bool IsValidPlayerCount(int count)
         {
             return count == 2 || count == 4;
         }
 
-        // ساخت نوبت های بازیکنان
         public static PlayerTurnData[] CreateTurns(string[] playerIds)
         {
             if (playerIds == null ||
@@ -67,7 +64,6 @@ namespace ManchTak
             return turns;
         }
 
-        // شروع نوبت بازیکن
         public static bool StartTurn(
             PlayerTurnData[] turns,
             int activeIndex)
@@ -75,11 +71,11 @@ namespace ManchTak
             if (!IsValidIndex(turns, activeIndex))
                 return false;
 
-            foreach (PlayerTurnData turn in turns)
+            for (int i = 0; i < turns.Length; i++)
             {
-                turn.State = TurnState.Waiting;
-                turn.HasPlayed = false;
-                turn.RemainingSeconds = TurnDurationSeconds;
+                turns[i].State = TurnState.Waiting;
+                turns[i].HasPlayed = false;
+                turns[i].RemainingSeconds = TurnDurationSeconds;
             }
 
             turns[activeIndex].State = TurnState.Active;
@@ -87,7 +83,6 @@ namespace ManchTak
             return true;
         }
 
-        // بررسی نوبت بازیکن
         public static bool IsPlayerTurn(
             PlayerTurnData[] turns,
             string playerId)
@@ -98,14 +93,16 @@ namespace ManchTak
 
             foreach (PlayerTurnData turn in turns)
             {
-                if (turn.PlayerId == playerId)
+                if (turn != null &&
+                    turn.PlayerId == playerId)
+                {
                     return turn.State == TurnState.Active;
+                }
             }
 
             return false;
         }
 
-        // ثبت حرکت بازیکن
         public static bool CompleteTurn(
             PlayerTurnData[] turns,
             string playerId)
@@ -115,7 +112,7 @@ namespace ManchTak
 
             foreach (PlayerTurnData turn in turns)
             {
-                if (turn.PlayerId == playerId)
+                if (turn != null && turn.PlayerId == playerId)
                 {
                     turn.HasPlayed = true;
                     turn.State = TurnState.Completed;
@@ -126,7 +123,35 @@ namespace ManchTak
             return false;
         }
 
-        // کاهش زمان نوبت
+        public static bool StartNextTurn(
+            PlayerTurnData[] turns)
+        {
+            int currentIndex = GetActivePlayerIndex(turns);
+
+            if (currentIndex < 0)
+                return false;
+
+            int nextIndex = GetNextPlayerIndex(turns, currentIndex);
+
+            return StartTurn(turns, nextIndex);
+        }
+
+        public static bool AdvanceAfterTimeout(
+            PlayerTurnData[] turns)
+        {
+            int activeIndex = GetActivePlayerIndex(turns);
+
+            if (activeIndex < 0)
+                return false;
+
+            if (turns[activeIndex].State != TurnState.TimedOut)
+                return false;
+
+            int nextIndex = GetNextPlayerIndex(turns, activeIndex);
+
+            return StartTurn(turns, nextIndex);
+        }
+
         public static bool UpdateTimer(
             PlayerTurnData[] turns,
             int activeIndex,
@@ -153,28 +178,43 @@ namespace ManchTak
             return false;
         }
 
-        // انتقال به بازیکن بعدی
+        public static int GetActivePlayerIndex(
+            PlayerTurnData[] turns)
+        {
+            if (turns == null)
+                return -1;
+
+            for (int i = 0; i < turns.Length; i++)
+            {
+                if (turns[i] != null &&
+                    turns[i].State == TurnState.Active)
+                    return i;
+            }
+
+            return -1;
+        }
+
         public static int GetNextPlayerIndex(
             PlayerTurnData[] turns,
             int currentIndex)
         {
-            if (turns == null || turns.Length == 0)
-                return -1;
-
-            if (currentIndex < 0 || currentIndex >= turns.Length)
+            if (turns == null ||
+                turns.Length == 0 ||
+                currentIndex < 0 ||
+                currentIndex >= turns.Length)
                 return -1;
 
             return (currentIndex + 1) % turns.Length;
         }
 
-        // بررسی معتبر بودن اندیس
         private static bool IsValidIndex(
             PlayerTurnData[] turns,
             int index)
         {
             return turns != null &&
                    index >= 0 &&
-                   index < turns.Length;
+                   index < turns.Length &&
+                   turns[index] != null;
         }
     }
 }

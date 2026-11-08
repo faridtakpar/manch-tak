@@ -1,0 +1,143 @@
+using System;
+
+namespace ManchTak
+{
+    public class OfflineBotTurnResult
+    {
+        public int DiceValue;
+        public int PieceIndex;
+        public PieceMovementEngine.MoveResult MoveResult;
+        public bool ExtraTurn;
+        public bool TurnAdvanced;
+        public bool ThirdSix;
+    }
+
+    public static class OfflineBotTurnController
+    {
+        public static OfflineBotTurnResult PlayTurn(
+            OfflineMatchSetup setup,
+            PlayerData[] players,
+            PlayerTurnData[] turns,
+            int activeSeat,
+            int[] playerStartCells,
+            int[][] distancesToHomeEntry,
+            int[] consecutiveSixes)
+        {
+            if (setup == null ||
+                players == null ||
+                turns == null ||
+                playerStartCells == null ||
+                distancesToHomeEntry == null ||
+                consecutiveSixes == null)
+                return null;
+
+            if (activeSeat < 0 ||
+                activeSeat >= setup.PlayerCount ||
+                activeSeat >= players.Length ||
+                activeSeat >= turns.Length ||
+                activeSeat >= playerStartCells.Length ||
+                activeSeat >= distancesToHomeEntry.Length ||
+                activeSeat >= consecutiveSixes.Length)
+                return null;
+
+            if (setup.Players[activeSeat].Type !=
+                OfflinePlayerType.Bot)
+                return null;
+
+            PlayerData player = players[activeSeat];
+
+            if (player == null ||
+                player.PlayerId != setup.Players[activeSeat].PlayerId ||
+                TurnSystem.GetActivePlayerIndex(turns) != activeSeat)
+                return null;
+
+            DiceRollData roll = DiceRollSystem.Roll(
+                player.PlayerId,
+                consecutiveSixes[activeSeat]
+            );
+
+            if (roll == null)
+                return null;
+
+            consecutiveSixes[activeSeat] =
+                roll.ConsecutiveSixes;
+
+            OfflineBotTurnResult result =
+                new OfflineBotTurnResult();
+
+            result.DiceValue = roll.Value;
+            result.PieceIndex = -1;
+            result.ExtraTurn =
+                DiceRollSystem.ShouldKeepTurn(roll);
+
+            if (DiceRollSystem.ShouldSkipTurn(roll))
+            {
+                result.ThirdSix = true;
+                AdvanceTurn(turns, activeSeat);
+                result.TurnAdvanced = true;
+                return result;
+            }
+
+            int pieceIndex = BotMoveSelector.ChoosePiece(
+                player,
+                roll.Value,
+                playerStartCells[activeSeat],
+                distancesToHomeEntry[activeSeat]
+            );
+
+            if (pieceIndex < 0)
+            {
+                if (!result.ExtraTurn)
+                {
+                    AdvanceTurn(turns, activeSeat);
+                    result.TurnAdvanced = true;
+                }
+
+                return result;
+            }
+
+            PieceData piece = player.Pieces[pieceIndex];
+
+            PieceMovementEngine.MoveResult move =
+                PieceMovementEngine.TryApplyMove(
+                    piece,
+                    roll.Value,
+                    playerStartCells[activeSeat],
+                    distancesToHomeEntry[activeSeat][pieceIndex]
+                );
+
+            result.PieceIndex = pieceIndex;
+            result.MoveResult = move;
+
+            if (move == PieceMovementEngine.MoveResult.InvalidInput ||
+                move == PieceMovementEngine.MoveResult.NoLegalMove)
+            {
+                result.PieceIndex = -1;
+
+                if (!result.ExtraTurn)
+                {
+                    AdvanceTurn(turns, activeSeat);
+                    result.TurnAdvanced = true;
+                }
+
+                return result;
+            }
+
+            if (!result.ExtraTurn)
+            {
+                AdvanceTurn(turns, activeSeat);
+                result.TurnAdvanced = true;
+            }
+
+            return result;
+        }
+
+        private static void AdvanceTurn(
+            PlayerTurnData[] turns,
+            int activeSeat)
+        {
+            int nextSeat = (activeSeat + 1) % turns.Length;
+            TurnSystem.StartTurn(turns, nextSeat);
+        }
+    }
+}

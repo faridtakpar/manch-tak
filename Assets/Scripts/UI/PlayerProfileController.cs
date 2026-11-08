@@ -1,28 +1,94 @@
-public bool SyncProgress(PlayerProfileData source)
+
+using System;
+
+namespace ManchTak
 {
-    if (source == null)
-        return false;
+    public class PlayerProfileViewController
+    {
+        public PlayerProfileViewData Profile { get; private set; }
 
-    if (!PlayerLevelBadgeRules.IsValidLevel(
-        source.PlayerLevel))
-        return false;
+        public event Action<PlayerProfileViewData> OnProfileChanged;
 
-    Profile.DisplayName = string.IsNullOrWhiteSpace(
-        source.DisplayName)
-        ? "بازیکن جدید"
-        : source.DisplayName;
+        public PlayerProfileViewController(
+            PlayerProfileViewData profile = null)
+        {
+            Profile = profile ?? new PlayerProfileViewData();
+            Profile.RefreshLevelBadge();
+        }
 
-    Profile.Level = source.PlayerLevel;
-    Profile.TotalXP = Math.Max(0, source.TotalXP);
+        public bool ChangeDisplayName(string newName)
+        {
+            if (!PlayerProfileRules.SetDisplayName(Profile, newName))
+                return false;
 
-    Profile.TotalWins = Math.Max(0, source.TotalWins);
-    Profile.TotalLosses = Math.Max(0, source.TotalLosses);
+            NotifyProfileChanged();
+            return true;
+        }
 
-    Profile.TotalMatches = Profile.TotalWins +
-                           Profile.TotalLosses;
+        public bool ChangeAvatar(string avatarId)
+        {
+            ProfileAvatarData avatar =
+                ProfileAvatarCatalog.FindById(avatarId);
 
-    Profile.RefreshLevelBadge();
+            if (avatar == null)
+                return false;
 
-    NotifyProfileChanged();
-    return true;
+            if (!PlayerProfileRules.SetAvatar(
+                Profile,
+                avatar.AvatarType,
+                avatar.AvatarId))
+                return false;
+
+            NotifyProfileChanged();
+            return true;
+        }
+
+        public bool SyncProgress(PlayerProfileData source)
+        {
+            if (source == null)
+                return false;
+
+            if (!PlayerLevelBadgeRules.IsValidLevel(
+                source.PlayerLevel))
+                return false;
+
+            Profile.DisplayName =
+                string.IsNullOrWhiteSpace(source.DisplayName)
+                ? "بازیکن جدید"
+                : source.DisplayName;
+
+            Profile.Level = source.PlayerLevel;
+            Profile.TotalXP = Math.Max(0, source.TotalXP);
+            Profile.TotalWins = Math.Max(0, source.TotalWins);
+            Profile.TotalLosses = Math.Max(0, source.TotalLosses);
+
+            Profile.TotalMatches =
+                Profile.TotalWins + Profile.TotalLosses;
+
+            Profile.RefreshLevelBadge();
+
+            NotifyProfileChanged();
+            return true;
+        }
+
+        public bool RecordMatchResult(bool won)
+        {
+            if (!PlayerProfileRules.UpdateMatchStats(Profile, won))
+                return false;
+
+            NotifyProfileChanged();
+            return true;
+        }
+
+        public float GetWinRate()
+        {
+            return PlayerProfileRules.GetWinRate(Profile);
+        }
+
+        private void NotifyProfileChanged()
+        {
+            Profile.RefreshLevelBadge();
+            OnProfileChanged?.Invoke(Profile);
+        }
+    }
 }

@@ -1,3 +1,4 @@
+
 using System;
 
 namespace ManchTak
@@ -13,6 +14,9 @@ namespace ManchTak
         public MatchPlayMode PlayMode;
         public MatchResult LastMatchResult;
 
+        public DiceRollData CurrentDice;
+        public bool HasRolled;
+
         private int[] startCellByColor;
         private int[] homeEntryCellByColor;
 
@@ -24,8 +28,12 @@ namespace ManchTak
                        Setup.IsValid() &&
                        Players != null &&
                        Turns != null &&
+                       Progress != null &&
+                       ConsecutiveSixes != null &&
                        Players.Length == Setup.PlayerCount &&
-                       Turns.Length == Setup.PlayerCount;
+                       Turns.Length == Setup.PlayerCount &&
+                       Progress.Length == Setup.PlayerCount &&
+                       ConsecutiveSixes.Length == Setup.PlayerCount;
             }
         }
 
@@ -68,7 +76,8 @@ namespace ManchTak
 
             PlayerTurnData[] turns = TurnSystem.CreateTurns(ids);
 
-            if (turns == null || turns.Length != playerCount ||
+            if (turns == null ||
+                turns.Length != playerCount ||
                 !TurnSystem.StartTurn(turns, 0))
                 return null;
 
@@ -90,7 +99,8 @@ namespace ManchTak
                 progress[i] = new PlayerMatchProgress(slot.PlayerId);
             }
 
-            OfflineMatchSession session = new OfflineMatchSession();
+            OfflineMatchSession session =
+                new OfflineMatchSession();
 
             session.Setup = setup;
             session.Players = players;
@@ -98,6 +108,8 @@ namespace ManchTak
             session.Progress = progress;
             session.PlayMode = playMode;
             session.ConsecutiveSixes = new int[playerCount];
+            session.CurrentDice = null;
+            session.HasRolled = false;
 
             session.startCellByColor =
                 (int[])startCellsByColor.Clone();
@@ -108,18 +120,143 @@ namespace ManchTak
             return session;
         }
 
-        public OfflineBotTurnResult PlayActiveBotTurn()
+        public DiceRollData RollForHuman()
+        {
+            if (!IsReady || HasRolled || IsMatchCompleted())
+                return null;
+
+            int seat = TurnSystem.GetActivePlayerIndex(Turns);
+
+            if (!IsValidSeat(seat) ||
+                Setup.Players[seat].Type != OfflinePlayerType.Human)
+                return null;
+
+            DiceRollData dice = DiceRollSystem.Roll(
+                Players[seat].PlayerId,
+                ConsecutiveSixes[seat]
+            );
+
+            if (dice == null)
+                return null;
+
+            ConsecutiveSixes[seat] = dice.ConsecutiveSixes;
+
+            if (DiceRollSystem.ShouldSkipTurn(dice))
+            {
+                ConsecutiveSixes[seat] = 0;
+                CurrentDice = null;
+                HasRolled = false;
+                AdvanceTurn(seat);
+                return dice;
+            }
+
+            CurrentDice = dice;
+            HasRolled = true;
+
+            return dice;
+        }
+
+        public PieceMovementEngine.MoveResult ApplyHumanMove(
+            int pieceIndex)
         {
             if (!IsReady ||
-                (LastMatchResult != null &&
-                 LastMatchResult.Status == MatchResultStatus.Completed))
+                !HasRolled ||
+                CurrentDice == null ||
+                IsMatchCompleted() ||
+                !PieceMovementEngine.IsValidPieceIndex(pieceIndex))
+                return PieceMovementEngine.MoveResult.InvalidInput;
+
+            int seat = TurnSystem.GetActivePlayerIndex(Turns);
+
+            if (!IsValidSeat(seat) ||
+                Setup.Players[seat].Type != OfflinePlayerType.Human)
+                return PieceMovementEngine.MoveResult.InvalidInput;
+
+            if (!DiceRollSystem.CanMovePiece(CurrentDice))
+                return PieceMovementEngine.MoveResult.InvalidInput;
+
+            PieceData piece = Players[seat].Pieces[pieceIndex];
+
+            if (piece == null ||
+                !PieceMovementRules.CanMove(piece, CurrentDice.Value))
+                return PieceMovementEngine.MoveResult.NoLegalMove;
+
+            int colorIndex = (int)Players[seat].Color;
+
+            if (colorIndex < 0 || colorIndex >= 4)
+                return PieceMovementEngine.MoveResult.InvalidInput;
+
+            int distance = GetDistanceToHomeEntry(
+                piece,
+                homeEntryCellByColor[colorIndex]
+            );
+
+            PieceMovementEngine.MoveResult result =
+                PieceMovementEngine.TryApplyMove(
+                    piece,
+                    CurrentDice.Value,
+                    startCellByColor[colorIndex],
+                    distance
+                );
+
+            if (result == PieceMovementEngine.MoveResult.InvalidInput ||
+                result == PieceMovementEngine.MoveResult.NoLegalMove)
+                return result;
+
+            bool extraTurn =
+                DiceRollSystem.ShouldKeepTurn(CurrentDice);
+
+            CurrentDice = null;
+            HasRolled = false;
+
+            RefreshProgressAndResult();
+
+            if (IsMatchCompleted())
+                return result;
+
+            if (!extraTurn)
+                AdvanceTurn(seat);
+
+            return result;
+        }
+
+        public bool FinishHumanTurnWithoutMove()
+        {
+            if (!IsReady ||
+                !HasRolled ||
+                CurrentDice == null ||
+                IsMatchCompleted())
+                return false;
+
+            int seat = TurnSystem.GetActivePlayerIndex(Turns);
+
+            if (!IsValidSeat(seat) ||
+                Setup.Players[seat].Type != OfflinePlayerType.Human)
+                return false;
+
+            if (DiceRollSystem.ShouldKeepTurn(CurrentDice))
+            {
+                CurrentDice = null;
+                HasRolled = false;
+                return true;
+            }
+
+            CurrentDice = null;
+            HasRolled = false;
+            AdvanceTurn(seat);
+
+            return true;
+        }
+
+        public OfflineBotTurnResult PlayActiveBotTurn()
+        {
+            if (!IsReady || IsMatchCompleted())
                 return null;
 
             int activeSeat =
                 TurnSystem.GetActivePlayerIndex(Turns);
 
-            if (activeSeat < 0 ||
-                activeSeat >= Setup.PlayerCount ||
+            if (!IsValidSeat(activeSeat) ||
                 Setup.Players[activeSeat].Type != OfflinePlayerType.Bot)
                 return null;
 
@@ -132,6 +269,9 @@ namespace ManchTak
             for (int seat = 0; seat < Setup.PlayerCount; seat++)
             {
                 int colorIndex = (int)Players[seat].Color;
+
+                if (colorIndex < 0 || colorIndex >= 4)
+                    return null;
 
                 playerStartCells[seat] =
                     startCellByColor[colorIndex];
@@ -154,7 +294,7 @@ namespace ManchTak
                 }
             }
 
-            OfflineBotTurnResult turnResult =
+            OfflineBotTurnResult result =
                 OfflineBotTurnController.PlayTurn(
                     Setup,
                     Players,
@@ -165,16 +305,20 @@ namespace ManchTak
                     ConsecutiveSixes
                 );
 
-            if (turnResult == null)
+            if (result == null)
                 return null;
 
+            CurrentDice = null;
+            HasRolled = false;
+
             RefreshProgressAndResult();
-            return turnResult;
+
+            return result;
         }
 
         public void RefreshProgressAndResult()
         {
-            if (!IsReady || Progress == null)
+            if (!IsReady)
                 return;
 
             for (int i = 0; i < Players.Length; i++)
@@ -183,7 +327,8 @@ namespace ManchTak
 
                 for (int p = 0; p < Players[i].Pieces.Length; p++)
                 {
-                    if (Players[i].Pieces[p].State == PieceState.Finished)
+                    if (Players[i].Pieces[p].State ==
+                        PieceState.Finished)
                         finished++;
                 }
 
@@ -197,11 +342,38 @@ namespace ManchTak
             );
         }
 
+        private void AdvanceTurn(int currentSeat)
+        {
+            if (!IsValidSeat(currentSeat))
+                return;
+
+            int nextSeat =
+                TurnSystem.GetNextPlayerIndex(Turns, currentSeat);
+
+            if (nextSeat >= 0)
+                TurnSystem.StartTurn(Turns, nextSeat);
+        }
+
+        private bool IsMatchCompleted()
+        {
+            return LastMatchResult != null &&
+                   LastMatchResult.Status ==
+                   MatchResultStatus.Completed;
+        }
+
+        private bool IsValidSeat(int seat)
+        {
+            return seat >= 0 &&
+                   seat < Setup.PlayerCount &&
+                   seat < Players.Length;
+        }
+
         private static int GetDistanceToHomeEntry(
             PieceData piece,
             int homeEntryCell)
         {
-            if (piece == null || piece.State != PieceState.OnBoard)
+            if (piece == null ||
+                piece.State != PieceState.OnBoard)
                 return 1;
 
             int distance =

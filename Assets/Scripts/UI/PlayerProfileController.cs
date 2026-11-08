@@ -1,83 +1,28 @@
-using System;
-
-namespace ManchTak
+public bool SyncProgress(PlayerProfileData source)
 {
-    public class PlayerProfileViewController
-    {
-        public PlayerProfileViewData Profile { get; private set; }
+    if (source == null)
+        return false;
 
-        public event Action<PlayerProfileViewData> OnProfileChanged;
+    if (!PlayerLevelBadgeRules.IsValidLevel(
+        source.PlayerLevel))
+        return false;
 
-        public PlayerProfileViewController(
-            PlayerProfileViewData profile = null)
-        {
-            Profile = profile ?? new PlayerProfileViewData();
-            Profile.RefreshLevelBadge();
-        }
+    Profile.DisplayName = string.IsNullOrWhiteSpace(
+        source.DisplayName)
+        ? "بازیکن جدید"
+        : source.DisplayName;
 
-        public bool ChangeDisplayName(string newName)
-        {
-            if (!PlayerProfileRules.SetDisplayName(Profile, newName))
-                return false;
+    Profile.Level = source.PlayerLevel;
+    Profile.TotalXP = Math.Max(0, source.TotalXP);
 
-            NotifyProfileChanged();
-            return true;
-        }
+    Profile.TotalWins = Math.Max(0, source.TotalWins);
+    Profile.TotalLosses = Math.Max(0, source.TotalLosses);
 
-        public bool ChangeAvatar(string avatarId)
-        {
-            ProfileAvatarData avatar =
-                ProfileAvatarCatalog.FindById(avatarId);
+    Profile.TotalMatches = Profile.TotalWins +
+                           Profile.TotalLosses;
 
-            if (avatar == null)
-                return false;
+    Profile.RefreshLevelBadge();
 
-            if (!PlayerProfileRules.SetAvatar(
-                Profile,
-                avatar.AvatarType,
-                avatar.AvatarId))
-                return false;
-
-            NotifyProfileChanged();
-            return true;
-        }
-
-        // دریافت لول و XP از پروفایل اصلی بازیکن
-        public bool SyncProgress(PlayerProfileData source)
-        {
-            if (source == null)
-                return false;
-
-            if (!PlayerLevelBadgeRules.IsValidLevel(
-                source.PlayerLevel))
-                return false;
-
-            Profile.Level = source.PlayerLevel;
-            Profile.TotalXP = Math.Max(0, source.TotalXP);
-
-            Profile.RefreshLevelBadge();
-
-            NotifyProfileChanged();
-            return true;
-        }
-
-        public bool RecordMatchResult(bool won)
-        {
-            if (!PlayerProfileRules.UpdateMatchStats(Profile, won))
-                return false;
-
-            NotifyProfileChanged();
-            return true;
-        }
-
-        public float GetWinRate()
-        {
-            return PlayerProfileRules.GetWinRate(Profile);
-        }
-
-        private void NotifyProfileChanged()
-        {
-            OnProfileChanged?.Invoke(Profile);
-        }
-    }
+    NotifyProfileChanged();
+    return true;
 }

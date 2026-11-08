@@ -37,14 +37,28 @@ namespace ManchTak
             foreach (OfflinePlayerSlot player in Players)
             {
                 if (player == null ||
-                    string.IsNullOrWhiteSpace(player.PlayerId))
+                    string.IsNullOrWhiteSpace(player.PlayerId) ||
+                    string.IsNullOrWhiteSpace(player.DisplayName))
                     return false;
 
                 if (player.Type == OfflinePlayerType.Human)
                     humans++;
-
-                if (player.Type == OfflinePlayerType.Bot)
+                else if (player.Type == OfflinePlayerType.Bot)
                     bots++;
+                else
+                    return false;
+
+                foreach (OfflinePlayerSlot other in Players)
+                {
+                    if (other == null || other == player)
+                        continue;
+
+                    if (string.Equals(
+                        player.PlayerId,
+                        other.PlayerId,
+                        StringComparison.Ordinal))
+                        return false;
+                }
             }
 
             return humans == 1 && bots == PlayerCount - 1;

@@ -1,112 +1,115 @@
-
 using System;
 
 namespace ManchTak
 {
-    public enum DiceRollStatus
+    public enum DiceRollResult
     {
-        Success,
-        InvalidPlayer,
-        InvalidDiceValue,
-        ThirdSix,
-        RetryRequired
+        Normal,
+        ExtraTurn,
+        ThirdSix
     }
 
     [Serializable]
-    public class DiceRollResult
+    public class DiceRollData
     {
-        public string PlayerId;
-        public int DiceValue;
+        public int Value;
         public int ConsecutiveSixes;
-        public DiceRollStatus Status;
-        public long CreatedAt;
-
-        public DiceRollResult(
-            string playerId,
-            int diceValue,
-            int consecutiveSixes,
-            DiceRollStatus status)
-        {
-            PlayerId = playerId;
-            DiceValue = diceValue;
-            ConsecutiveSixes = consecutiveSixes;
-            Status = status;
-            CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        }
+        public DiceRollResult Result;
+        public string PlayerId;
     }
 
     public static class DiceRollSystem
     {
-        public const int MinimumDiceValue = 1;
-        public const int MaximumDiceValue = 6;
-        public const int ThirdSixRetryCost = 2;
+        private const int MinimumDiceValue = 1;
+        private const int MaximumDiceValue = 6;
+        private const int MaximumConsecutiveSixes = 3;
 
-        // بررسی معتبر بودن نتیجه تاس
+        private static readonly Random RandomGenerator =
+            new Random();
+
+        public static DiceRollData Roll(string playerId)
+        {
+            if (string.IsNullOrWhiteSpace(playerId))
+                return null;
+
+            int value;
+
+            lock (RandomGenerator)
+            {
+                value = RandomGenerator.Next(
+                    MinimumDiceValue,
+                    MaximumDiceValue + 1);
+            }
+
+            return new DiceRollData
+            {
+                Value = value,
+                PlayerId = playerId,
+                ConsecutiveSixes = value == 6 ? 1 : 0,
+                Result = value == 6
+                    ? DiceRollResult.ExtraTurn
+                    : DiceRollResult.Normal
+            };
+        }
+
+        public static DiceRollData Roll(
+            string playerId,
+            int previousConsecutiveSixes)
+        {
+            if (string.IsNullOrWhiteSpace(playerId) ||
+                previousConsecutiveSixes < 0 ||
+                previousConsecutiveSixes >= MaximumConsecutiveSixes)
+                return null;
+
+            DiceRollData result = Roll(playerId);
+
+            if (result == null)
+                return null;
+
+            result.ConsecutiveSixes =
+                result.Value == 6
+                    ? previousConsecutiveSixes + 1
+                    : 0;
+
+            if (result.ConsecutiveSixes >= MaximumConsecutiveSixes)
+            {
+                result.Result = DiceRollResult.ThirdSix;
+            }
+            else if (result.Value == 6)
+            {
+                result.Result = DiceRollResult.ExtraTurn;
+            }
+            else
+            {
+                result.Result = DiceRollResult.Normal;
+            }
+
+            return result;
+        }
+
         public static bool IsValidDiceValue(int value)
         {
             return value >= MinimumDiceValue &&
                    value <= MaximumDiceValue;
         }
 
-        // ثبت نتیجه پرتاب تاس
-        public static DiceRollResult ProcessRoll(
-            string playerId,
-            int diceValue,
-            int previousConsecutiveSixes)
+        public static bool ShouldKeepTurn(DiceRollData result)
         {
-            if (string.IsNullOrWhiteSpace(playerId))
-            {
-                return new DiceRollResult(
-                    playerId,
-                    diceValue,
-                    previousConsecutiveSixes,
-                    DiceRollStatus.InvalidPlayer
-                );
-            }
-
-            if (!IsValidDiceValue(diceValue))
-            {
-                return new DiceRollResult(
-                    playerId,
-                    diceValue,
-                    previousConsecutiveSixes,
-                    DiceRollStatus.InvalidDiceValue
-                );
-            }
-
-            int consecutiveSixes = diceValue == 6
-                ? previousConsecutiveSixes + 1
-                : 0;
-
-            if (consecutiveSixes >= 3)
-            {
-                return new DiceRollResult(
-                    playerId,
-                    diceValue,
-                    0,
-                    DiceRollStatus.ThirdSix
-                );
-            }
-
-            return new DiceRollResult(
-                playerId,
-                diceValue,
-                consecutiveSixes,
-                DiceRollStatus.Success
-            );
+            return result != null &&
+                   result.Result == DiceRollResult.ExtraTurn;
         }
 
-        // بررسی نیاز به تلاش مجدد
-        public static bool CanRetryAfterThirdSix(
-            int diamondBalance)
+        public static bool ShouldSkipTurn(DiceRollData result)
         {
-            return diamondBalance >= ThirdSixRetryCost;
+            return result != null &&
+                   result.Result == DiceRollResult.ThirdSix;
         }
 
-        // هزینه الماس تلاش مجدد
-        public static int GetRetryCost()
+        public static bool CanMovePiece(DiceRollData result)
         {
-            return ThirdSixRetryCost;
+            return result != null &&
+                   IsValidDiceValue(result.Value) &&
+                   result.Result != DiceRollResult.ThirdSix;
         }
     }
 }

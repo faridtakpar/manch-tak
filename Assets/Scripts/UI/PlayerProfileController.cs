@@ -12,6 +12,7 @@ namespace ManchTak
             PlayerProfileViewData profile = null)
         {
             Profile = profile ?? new PlayerProfileViewData();
+            Profile.RefreshLevelBadge();
         }
 
         public bool ChangeDisplayName(string newName)
@@ -36,6 +37,25 @@ namespace ManchTak
                 avatar.AvatarType,
                 avatar.AvatarId))
                 return false;
+
+            NotifyProfileChanged();
+            return true;
+        }
+
+        // دریافت لول و XP از پروفایل اصلی بازیکن
+        public bool SyncProgress(PlayerProfileData source)
+        {
+            if (source == null)
+                return false;
+
+            if (!PlayerLevelBadgeRules.IsValidLevel(
+                source.PlayerLevel))
+                return false;
+
+            Profile.Level = source.PlayerLevel;
+            Profile.TotalXP = Math.Max(0, source.TotalXP);
+
+            Profile.RefreshLevelBadge();
 
             NotifyProfileChanged();
             return true;

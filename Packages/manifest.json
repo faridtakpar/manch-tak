@@ -1,8 +1,6 @@
-
 {
   "dependencies": {
     "com.unity.netcode.gameobjects": "2.13.3",
-    "com.unity.transport": "2.7.5",
-    "com.unity.ugui": "2.0.0"
+    "com.unity.transport": "2.7.5"
   }
 }

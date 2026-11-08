@@ -24,6 +24,11 @@ namespace ManchTak
 
         public int FriendsCount;
 
+        // اطلاعات نشان لول
+        public string LevelBadgeText;
+        public string LevelBadgeColorHex;
+        public string LevelBadgeCategory;
+
         public PlayerProfileViewData()
         {
             DisplayName = "بازیکن جدید";
@@ -38,6 +43,39 @@ namespace ManchTak
             TotalMatches = 0;
 
             FriendsCount = 0;
+
+            RefreshLevelBadge();
+        }
+
+        // هماهنگ سازی نشان با سطح بازیکن
+        public void RefreshLevelBadge()
+        {
+            Level = Math.Max(
+                1,
+                Math.Min(200, Level)
+            );
+
+            LevelBadgeText =
+                PlayerLevelBadgeRules.GetLevelText(Level);
+
+            LevelBadgeColorHex =
+                PlayerLevelBadgeRules.GetColorHex(Level);
+
+            LevelBadgeCategory =
+                PlayerLevelBadgeRules.GetLevelCategory(Level);
+        }
+
+        // تغییر سطح بازیکن و بروزرسانی نشان
+        public bool SetLevel(int newLevel)
+        {
+            if (!PlayerLevelBadgeRules.IsValidLevel(newLevel))
+                return false;
+
+            Level = newLevel;
+
+            RefreshLevelBadge();
+
+            return true;
         }
     }
 }

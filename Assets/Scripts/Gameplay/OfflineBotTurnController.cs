@@ -24,8 +24,10 @@ namespace ManchTak
             int[] consecutiveSixes)
         {
             if (setup == null ||
+                !setup.IsValid() ||
                 players == null ||
                 turns == null ||
+                setup.Players == null ||
                 playerStartCells == null ||
                 distancesToHomeEntry == null ||
                 consecutiveSixes == null)
@@ -37,7 +39,9 @@ namespace ManchTak
                 activeSeat >= turns.Length ||
                 activeSeat >= playerStartCells.Length ||
                 activeSeat >= distancesToHomeEntry.Length ||
-                activeSeat >= consecutiveSixes.Length)
+                activeSeat >= consecutiveSixes.Length ||
+                distancesToHomeEntry[activeSeat] == null ||
+                distancesToHomeEntry[activeSeat].Length != 4)
                 return null;
 
             if (setup.Players[activeSeat].Type !=
@@ -73,8 +77,13 @@ namespace ManchTak
             if (DiceRollSystem.ShouldSkipTurn(roll))
             {
                 result.ThirdSix = true;
-                AdvanceTurn(turns, activeSeat);
-                result.TurnAdvanced = true;
+
+                // پس از سه شش متوالی، شمارنده صفر می‌شود.
+                consecutiveSixes[activeSeat] = 0;
+
+                result.TurnAdvanced =
+                    TurnSystem.StartNextTurn(turns);
+
                 return result;
             }
 
@@ -89,8 +98,8 @@ namespace ManchTak
             {
                 if (!result.ExtraTurn)
                 {
-                    AdvanceTurn(turns, activeSeat);
-                    result.TurnAdvanced = true;
+                    result.TurnAdvanced =
+                        TurnSystem.StartNextTurn(turns);
                 }
 
                 return result;
@@ -109,15 +118,17 @@ namespace ManchTak
             result.PieceIndex = pieceIndex;
             result.MoveResult = move;
 
-            if (move == PieceMovementEngine.MoveResult.InvalidInput ||
-                move == PieceMovementEngine.MoveResult.NoLegalMove)
+            if (move ==
+                    PieceMovementEngine.MoveResult.InvalidInput ||
+                move ==
+                    PieceMovementEngine.MoveResult.NoLegalMove)
             {
                 result.PieceIndex = -1;
 
                 if (!result.ExtraTurn)
                 {
-                    AdvanceTurn(turns, activeSeat);
-                    result.TurnAdvanced = true;
+                    result.TurnAdvanced =
+                        TurnSystem.StartNextTurn(turns);
                 }
 
                 return result;
@@ -125,19 +136,11 @@ namespace ManchTak
 
             if (!result.ExtraTurn)
             {
-                AdvanceTurn(turns, activeSeat);
-                result.TurnAdvanced = true;
+                result.TurnAdvanced =
+                    TurnSystem.StartNextTurn(turns);
             }
 
             return result;
-        }
-
-        private static void AdvanceTurn(
-            PlayerTurnData[] turns,
-            int activeSeat)
-        {
-            int nextSeat = (activeSeat + 1) % turns.Length;
-            TurnSystem.StartTurn(turns, nextSeat);
         }
     }
 }

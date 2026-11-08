@@ -27,6 +27,9 @@ namespace ManchTak
             {
                 PieceData original = player.Pieces[i];
 
+                if (original == null)
+                    continue;
+
                 if (!PieceMovementRules.CanMove(
                     original, diceValue))
                 {
@@ -49,6 +52,14 @@ namespace ManchTak
                         playerStartCell,
                         distancesToHomeEntry[i]
                     );
+
+                if (result ==
+                        PieceMovementEngine.MoveResult.InvalidInput ||
+                    result ==
+                        PieceMovementEngine.MoveResult.NoLegalMove)
+                {
+                    continue;
+                }
 
                 int score = GetScore(result, test);
 
